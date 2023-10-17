@@ -1,0 +1,34 @@
+"Study";"Population_ID";"Province";"Location";"study_year";"studysize_duration";"studysize_age";"Mean_duration";"duration_Quantile_1";"duration_Probability_1";"duration_Quantile_2";"duration_Probability_2";"Mean_age";"SD_age";"age_Quantile_1";"age_Probability_1";"age_Quantile_2";"age_Probability_2";"age_Quantile_3";"age_Probability_3";"age_Quantile_4";"age_Probability_4";"age_Quantile_5";"age_Probability_5";"age_Quantile_6";"age_Probability_6";"age_Quantile_7";"age_Probability_7";"Max_age";"age_exclusion";"exclusion_num"
+"Dunkle et al., 2005";"I";"GP";"Johannesburg";1996;295;295;2,11666666666667;1,25;0,5;NA;NA;25,1;NA;21;0,25;24;0,5;28;0,75;NA;NA;NA;NA;NA;NA;NA;NA;43;"min16years";16
+"Ramjee et al., 1998";"II";"KZN";NA;1996;145;145;3;NA;NA;NA;NA;25;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;41;"no";NA
+"Varga, 2001";"III";"KZN";"Durban";1998;100;100;NA;NA;NA;NA;NA;25,5;NA;20;0,129;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA
+"B. Williams et al., 2000";"IV";"GP";"Carletonville";1998;121;301;NA;NA;NA;NA;NA;32,5;NA;20;0,102990033222591;25;0,289036544850498;30;0,471760797342193;35;0,720930232558139;40;0,843853820598007;45;0,933554817275748;50;0,983388704318937;NA;NA;NA
+"Peltzer et al., 2004";"V";"LP";"Tzaneen & Phalaborwa";2001;70;70;5,7;NA;NA;NA;NA;26,6;5,5;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;45;"no";NA
+"van Loggerenberg et al., 2008";"VI";"KZN";"Durban";2004;245;775;NA;3;0,5;NA;NA;31,3;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;58;"min18years";18
+"Luseno & Wechsberg, 2009";"VII";"GP";"Pretoria";2005,5;276;425;NA;NA;NA;NA;NA;28;7,5;24;0,388235294117647;44;0,828235294117647;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;"min18years";18
+"Gould et al., 2008";"VIII";"WC";"Cape Town, brothel-based";2006,5;83;83;4,6;NA;NA;NA;NA;29;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;46;NA;NA
+"Gould et al., 2008";"IX";"WC";"Cape Town, street-based";2006,5;35;35;6,5;NA;NA;NA;NA;29;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;47;NA;NA
+"Delva et al., 2011";"X";NA;"Women advertising services online or in one of 3 local newspapers (Durban, Cape Town & Johannesburg)";2010;210;210;NA;NA;NA;NA;NA;28,6;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;55;"no";NA
+"Richter et al., 2013";"XI";"GP";"Sandton, Hillbrow, Rustenburg, Cape Town";2010;1503;1653;NA;1;0,163672654690619;5;0,560878243512974;29,7;6,5;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;"min18years";18
+"Lafort et al., 2016";"XII";"KZN";"Durban";2012,5;400;400;NA;NA;NA;NA;NA;NA;NA;21;0,064;26;0,437;31;0,75;36;0,878;NA;NA;NA;NA;NA;NA;NA;"min18years";18
+"Slabbert & Radebe, 2016";"XIII";"GP";"Johannesburg brothels";2013;124;124;NA;NA;NA;NA;NA;32,08;6,56;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;"min18years";18
+"Slabbert & Radebe, 2016";"XIV";"GP";"Pretoria brothels";2013;50;50;NA;NA;NA;NA;NA;31,52;5,21;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;"min18years";18
+"Black et al., 2015";"XV";"GP";"Johannesburg";2014;249;249;4,9;NA;NA;NA;NA;31,5;NA;27;0,25;35;0,75;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;"noreported";NA
+"Slabbert et al., 2017";"XVI";"GP";"Pretoria";2014,5;407;404;NA;2;0,732;5;0,906633906633907;33,2;9,9;25;0,105392156862745;30;0,330882352941176;35;0,644607843137255;NA;NA;NA;NA;NA;NA;NA;NA;NA;"no";NA
+"Slabbert et al., 2017";"XVII";"GP";"Johannesburg";2014,5;939;1422;NA;2;0,528221512247071;5;0,859424920127795;28,6;5,35;25;0,239099859353024;30;0,60267229254571;35;0,862165963431786;NA;NA;NA;NA;NA;NA;NA;NA;NA;"no";NA
+"Lafort et al., 2018";"XVIII";"KZN";"Durban";2015;400;400;NA;NA;NA;NA;NA;NA;NA;21;0,04;26;0,284;31;0,566;36;0,786;NA;NA;NA;NA;NA;NA;NA;"min18years";18
+"Eakle et al., 2017";"XIX";"GP";"Johannesburg and Pretoria";2015,5;692;692;NA;NA;NA;NA;NA;30,6153631284916;6,09413407821229;21;0,00837988826815642;31;0,511173184357542;41;0,924581005586592;51;0,991620111731844;NA;NA;NA;NA;NA;NA;55,4;"min18years";18
+"Coetzee et al., 2017";"XX";"GP";"Soweto";2016;508;508;NA;3;0,336614173228346;8;0,795275590551181;NA;NA;25;0,244094488188976;30;0,468503937007874;NA;NA;NA;NA;NA;NA;NA;NA;NA;NA;59;"min18years";18
+"Yeo et al., 2022";"XXI";"NW";"Klerksdorp";2018;156;156;NA;NA;NA;NA;NA;NA;NA;25;0,25;32;0,5;36;0,75;NA;NA;NA;NA;NA;NA;NA;NA;NA;"min18years";18
+"Milovanovic et al., 2021";"XXII";"NW";"Bojanala";2019;272;272;7,03;5;0,5;NA;NA;34;6,85;29;0,25;33;0,5;39;0,75;NA;NA;NA;NA;NA;NA;NA;NA;53;"min18years";18
+"Milovanovic et al., 2021";"XXIII";"EC";"Buffalo City";2019;261;261;8,5;5;0,5;NA;NA;35;8,96;28;0,25;34;0,5;41;0,75;NA;NA;NA;NA;NA;NA;NA;NA;60;"min18years";18
+"Milovanovic et al., 2021";"XXIV";"WC";"Cape Town";2019;376;377;8,93;7;0,5;NA;NA;33,1;7,32;28;0,25;33;0,5;37;0,75;NA;NA;NA;NA;NA;NA;NA;NA;59;"min18years";18
+"Milovanovic et al., 2021";"XXV";"MP";"Ehlanzeni";2019;265;267;7,2;5;0,5;NA;NA;31,7;7,7;26;0,25;30;0,5;36;0,75;NA;NA;NA;NA;NA;NA;NA;NA;59;"min18years";18
+"Milovanovic et al., 2021";"XXVI";"GP";"Ekurhuleni";2019;168;168;5,54;4;0,5;NA;NA;32,8;5,97;28;0,25;32,5;0,5;36,2;0,75;NA;NA;NA;NA;NA;NA;NA;NA;55;"min18years";18
+"Milovanovic et al., 2021";"XXVII";"KZN";"Ethekwini";2019;348;351;10,1;8;0,5;NA;NA;33,8;7,92;28;0,25;33;0,5;39;0,75;NA;NA;NA;NA;NA;NA;NA;NA;64;"min18years";18
+"Milovanovic et al., 2021";"XXVIII";"NC";"Francis Baard";2019;81;82;6,17;5;0,5;NA;NA;31;7,28;26;0,25;31;0,5;35;0,75;NA;NA;NA;NA;NA;NA;NA;NA;60;"min18years";18
+"Milovanovic et al., 2021";"XXIX";"GP";"Johannesburg";2019;540;540;7,62;5;0,5;NA;NA;33,8;8,13;28;0,25;33;0,5;39;0,75;NA;NA;NA;NA;NA;NA;NA;NA;59;"min18years";18
+"Milovanovic et al., 2021";"XXX";"FS";"Thabo Mofutsanyane";2019;190;190;7,24;5;0,5;NA;NA;31,3;7,88;25;0,25;31;0,5;35;0,75;NA;NA;NA;NA;NA;NA;NA;NA;57;"min18years";18
+"Milovanovic et al., 2021";"XXXI";"GP";"Tshwane";2019;157;157;11,5;9;0,5;NA;NA;37;8,98;30;0,25;36;0,5;42;0,75;NA;NA;NA;NA;NA;NA;NA;NA;62;"min18years";18
+"Milovanovic et al., 2021";"XXXII";"KZN";"Ugu";2019;78;80;6,94;5;0,5;NA;NA;30,2;6,91;25;0,25;29;0,5;34,2;0,75;NA;NA;NA;NA;NA;NA;NA;NA;48;"min18years";18
+"Milovanovic et al., 2021";"XXXIII";"LP";"Vhembe";2019;259;260;7,78;5;0,5;NA;NA;32;8,32;25;0,25;31;0,5;38;0,75;NA;NA;NA;NA;NA;NA;NA;NA;54;"min18years";18
