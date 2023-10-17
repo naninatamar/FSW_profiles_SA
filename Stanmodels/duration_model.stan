@@ -46,7 +46,6 @@ generated quantities{
   vector[N] log_lik;
   vector[N_new] expmeandur_pred;
   vector[N_new] meandur_pred;
-  vector[N_new] dur_pred;
   vector[N_new] expdur_pred;
   for (n in 1:N){
     log_lik[n] = gamma_lpdf(y[n] | s[n], 1/exp(alpha[ll[n]] + x[n]*beta)*s[n]);

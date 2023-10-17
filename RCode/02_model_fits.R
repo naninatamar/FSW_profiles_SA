@@ -1,0 +1,68 @@
+# load libraries
+library(tidyverse)
+require(rstan)
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
+source("01_data_adjustment.R")
+
+
+############################################################################
+#### Main analysis: SW duration and FSW age during SW by calendar year #####
+############################################################################
+
+
+### Duration model fit: 
+####################### 
+
+year_duration = seq(from = min(data.duration$study_year), to = max(data.duration$study_year), by = 0.25)
+year_duration_centred = year_duration - mean(data.duration$study_year)
+data.new.duration = data.frame(intercept = rep(1, length(year_duration)), year_centered = year_duration_centred)
+
+fit.duration = stan(file = "../Stanmodels/duration_model.stan",
+                    iter = 4000, 
+                    data = list(N = nrow(data.duration),
+                                L = nrow(data.duration), 
+                                y = data.duration$mean_duration_adjusted,
+                                ll = 1:nrow(data.duration), 
+                                x = data.duration$year_centered, 
+                                s = data.duration$studysize_duration, 
+                                N_new = nrow(data.new.duration), 
+                                x_new = data.new.duration[,2]))
+
+
+### Age model fit: 
+################### 
+
+year_age = seq(from = min(data.age$study_year), to = max(data.age$study_year), by = 0.25)
+year_age_centred = year_age - mean(data.age$study_year)
+data.new.age = data.frame(intercept = rep(1, length(year_age)), year_centered = year_age_centred)
+
+
+fit.age = stan(file = "../Stanmodels/age_model.stan",
+                    iter = 4000, 
+                    data = list(N = nrow(data.age),
+                                L = nrow(data.age), 
+                                y = data.age$mean_age_adjusted,
+                                ll = 1:nrow(data.age), 
+                                x = data.age$year_centered, 
+                                s = data.age$studysize_age, 
+                                c = 10, 
+                                N_sd = sum(!is.na(data.age$SD_age_adjusted)), 
+                                sd_y = data.age$SD_age_adjusted[!is.na(data.age$SD_age_adjusted)], 
+                                ind_sd = which(!is.na(data.age$SD_age_adjusted)), 
+                                N_new = nrow(data.new.age), 
+                                x_new = data.new.age[,2]))
+
+
+
+############################################################################
+#### Sensitivity analysis: Age at entry into SW by year of starting SW #####
+############################################################################
+
+
+
+############################################################################
+#### Simulation exercise model fits: Constant FSW age and SW duration  #####
+############################################################################
+

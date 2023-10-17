@@ -74,7 +74,6 @@ generated quantities{
   vector[N_new] expmeanage_pred;
   vector[N_new] meanage_pred;
   vector[N_new] age_pred;
-  vector[N_new] expage_pred;
   vector[N_new] beta_pred;
   vector[N_new] expbeta_pred;
   for (n in 1:N){
