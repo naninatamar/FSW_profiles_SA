@@ -127,3 +127,55 @@ fit.age.noslope = stan(file = "../Stanmodels/age_model_noslope.stan",
 save(fit.duration.noslope, fit.age.noslope, 
      file = "../../RData/model_fits_noslope.rda")
 
+
+#######################################################
+## Sensitivity analysis: Excluding Milovanovic study ##
+#######################################################
+
+# duration model fit
+
+data.duration.exclMilo = data.duration %>% filter(Study != "Milovanovic et al., 2021")
+year_duration.exclMilo = seq(from = min(data.duration$study_year), to = max(data.duration$study_year), by = 0.25)
+year_duration_centred.exclMilo = year_duration.exclMilo - mean(data.duration.exclMilo$study_year)
+data.new.duration.exclMilo = data.frame(intercept = rep(1, length(year_duration.exclMilo)), year_centered = year_duration_centred.exclMilo)
+
+fit.duration.exclMilo = stan(file = "../Stanmodels/duration_model.stan",
+                             iter = 4000, 
+                             data = list(N = nrow(data.duration.exclMilo),
+                                         L = nrow(data.duration.exclMilo), 
+                                         y = data.duration.exclMilo$mean_duration_adjusted,
+                                         ll = 1:nrow(data.duration.exclMilo), 
+                                         x = data.duration.exclMilo$year_centered, 
+                                         s = data.duration.exclMilo$studysize_duration, 
+                                         N_new = nrow(data.new.duration.exclMilo), 
+                                         x_new = data.new.duration.exclMilo[,2]))
+
+                    
+
+save(data.new.duration.exclMilo, data.duration.exclMilo, year_duration.exclMilo, fit.duration.exclMilo, 
+     file = "../../RData/duration_model_fit_exclMilo.rda")
+
+# age model fit
+
+data.age.exclMilo = data.age %>% filter(Study != "Milovanovic et al., 2021")
+year_age.exclMilo = seq(from = min(data.age$study_year), to = max(data.age$study_year), by = 0.25)
+year_age_centred.exclMilo = year_age.exclMilo - mean(data.age.exclMilo$study_year)
+data.new.age.exclMilo = data.frame(intercept = rep(1, length(year_age.exclMilo)), year_centered = year_age_centred.exclMilo)
+
+fit.age.exclMilo = stan(file = "../Stanmodels/age_model.stan",
+               iter = 4000, 
+               data = list(N = nrow(data.age.exclMilo),
+                           L = nrow(data.age.exclMilo), 
+                           y = data.age.exclMilo$mean_age_adjusted,
+                           ll = 1:nrow(data.age.exclMilo), 
+                           x = data.age.exclMilo$year_centered, 
+                           s = data.age.exclMilo$studysize_age, 
+                           c = 10, 
+                           N_sd = sum(!is.na(data.age.exclMilo$SD_age_adjusted)), 
+                           sd_y = data.age.exclMilo$SD_age_adjusted[!is.na(data.age.exclMilo$SD_age_adjusted)], 
+                           ind_sd = which(!is.na(data.age.exclMilo$SD_age_adjusted)), 
+                           N_new = nrow(data.new.age.exclMilo), 
+                           x_new = data.new.age.exclMilo[,2]))
+
+save(data.new.age.exclMilo, data.age.exclMilo, year_age.exclMilo, fit.age.exclMilo, 
+     file = "../../RData/age_model_fit_exclMilo.rda")
