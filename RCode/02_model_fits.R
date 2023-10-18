@@ -32,7 +32,7 @@ fit.duration = stan(file = "../Stanmodels/duration_model.stan",
 
 
 save(data.new.duration, year_duration, fit.duration, 
-     file = "../RData/duration_model_fit.rda")
+     file = "../../RData/duration_model_fit.rda")
 
 ## 
 ### Age model fit: 
@@ -59,7 +59,7 @@ fit.age = stan(file = "../Stanmodels/age_model.stan",
                                 x_new = data.new.age[,2]))
 
 save(data.new.age, year_age, fit.age, 
-     file = "../RData/age_model_fit.rda")
+     file = "../../RData/age_model_fit.rda")
 
 
 ############################################################################
@@ -95,7 +95,7 @@ fit.age.sens = stan(file = "../Stanmodels/age_model.stan",
                                 x_new = data.new.age.sens[,2]))
                       
 save(data.new.age.sens,data.age.sensitivity, year_age.sens, fit.age.sens, 
-     file = "../RData/age_model_fit_sensitivity.rda")
+     file = "../../RData/age_model_fit_sensitivity.rda")
 
 
 ############################################################################
@@ -126,5 +126,5 @@ fit.age.noslope = stan(file = "../Stanmodels/age_model_noslope.stan",
 
 
 save(fit.duration.noslope, fit.age.noslope, 
-     file = "../RData/model_fits_noslope.rda")
+     file = "../../RData/model_fits_noslope.rda")
 
