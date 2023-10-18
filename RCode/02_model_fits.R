@@ -31,6 +31,10 @@ fit.duration = stan(file = "../Stanmodels/duration_model.stan",
                                 x_new = data.new.duration[,2]))
 
 
+save(data.new.duration, year_duration, fit.duration, 
+     file = "../RData/duration_model_fit.rda")
+
+## 
 ### Age model fit: 
 ################### 
 
@@ -54,6 +58,8 @@ fit.age = stan(file = "../Stanmodels/age_model.stan",
                                 N_new = nrow(data.new.age), 
                                 x_new = data.new.age[,2]))
 
+save(data.new.age, year_age, fit.age, 
+     file = "../RData/age_model_fit.rda")
 
 
 ############################################################################
@@ -61,8 +67,64 @@ fit.age = stan(file = "../Stanmodels/age_model.stan",
 ############################################################################
 
 
+data.age.sensitivity = data.age %>% 
+  left_join(data.duration %>% select(Population_ID, mean_duration_adjusted)) %>% 
+  ungroup() %>% 
+  mutate(mean_age_entry = mean_age_adjusted - mean_duration_adjusted, 
+         year_entry = study_year - mean_duration_adjusted) %>%
+  filter(!is.na(mean_age_entry)) %>% 
+  mutate(year_entry_centered = year_entry - mean(year_entry)) 
+
+year_age.sens = seq(from = min(data.age.sensitivity$year_entry), to = max(data.age$study_year), by = 0.25)
+year_age_centred.sens = year_age.sens - mean(data.age.sensitivity$year_entry)
+data.new.age.sens = data.frame(intercept = rep(1, length(year_age.sens)), year_centered = year_age_centred.sens)
+
+fit.age.sens = stan(file = "../Stanmodels/age_model.stan",
+                    iter = 4000,
+                    data = list(N = nrow(data.age.sensitivity),
+                                L = nrow(data.age.sensitivity), 
+                                y = data.age.sensitivity$mean_age_entry,
+                                ll = 1:nrow(data.age.sensitivity), 
+                                x = data.age.sensitivity$year_entry_centered, 
+                                s = data.age.sensitivity$studysize_age, 
+                                c = 10, 
+                                N_sd = sum(!is.na(data.age.sensitivity$SD_age_adjusted)), 
+                                sd_y = data.age.sensitivity$SD_age_adjusted[!is.na(data.age.sensitivity$SD_age_adjusted)], 
+                                ind_sd = which(!is.na(data.age.sensitivity$SD_age_adjusted)), 
+                                N_new = nrow(data.new.age.sens), 
+                                x_new = data.new.age.sens[,2]))
+                      
+save(data.new.age.sens,data.age.sensitivity, year_age.sens, fit.age.sens, 
+     file = "../RData/age_model_fit_sensitivity.rda")
+
 
 ############################################################################
 #### Simulation exercise model fits: Constant FSW age and SW duration  #####
 ############################################################################
+
+fit.duration.noslope = stan(file = "../Stanmodels/duration_model_noslope.stan",
+                            iter = 4000, 
+                            data = list(N = nrow(data.duration),
+                                        L = nrow(data.duration), 
+                                        y = data.duration$mean_duration_adjusted,
+                                        ll = 1:nrow(data.duration), 
+                                        s = data.duration$studysize_duration, 
+                                        N_new = nrow(data.new.duration)))
+
+fit.age.noslope = stan(file = "../Stanmodels/age_model_noslope.stan",
+                       iter = 4000, 
+                       data = list(N = nrow(data.age),
+                                   L = nrow(data.age),
+                                   y = data.age$mean_age_adjusted,
+                                   ll = 1:nrow(data.age),
+                                   s = data.age$studysize_age,
+                                   c = 10, 
+                                   N_sd = sum(!is.na(data.age$SD_age_adjusted)), 
+                                   sd_y = data.age$SD_age_adjusted[!is.na(data.age$SD_age_adjusted)], 
+                                   ind_sd = which(!is.na(data.age$SD_age_adjusted)), 
+                                   N_new = nrow(data.new.age)))
+
+
+save(fit.duration.noslope, fit.age.noslope, 
+     file = "../RData/model_fits_noslope.rda")
 
