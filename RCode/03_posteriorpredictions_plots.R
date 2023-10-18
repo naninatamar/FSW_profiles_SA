@@ -1017,6 +1017,7 @@ r_dur_df.exclMilo$study_year = data.duration.exclMilo$study_year
 
 # plot posterior prediciton of expected SW duration:
 
+
 (plot.dur.exclMilo  = pred.rate.tot.exclMilo %>% 
    ggplot(aes(x=year, y = rate_Q05)) + 
    geom_line(col = "dodgerblue", size = 0.8)+ 

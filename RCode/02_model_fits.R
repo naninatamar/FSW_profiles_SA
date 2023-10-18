@@ -177,5 +177,6 @@ fit.age.exclMilo = stan(file = "../Stanmodels/age_model.stan",
                            N_new = nrow(data.new.age.exclMilo), 
                            x_new = data.new.age.exclMilo[,2]))
 
+
 save(data.new.age.exclMilo, data.age.exclMilo, year_age.exclMilo, fit.age.exclMilo, 
      file = "../../RData/age_model_fit_exclMilo.rda")
