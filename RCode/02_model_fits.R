@@ -34,7 +34,6 @@ fit.duration = stan(file = "../Stanmodels/duration_model.stan",
 save(data.new.duration, year_duration, fit.duration, 
      file = "../../RData/duration_model_fit.rda")
 
-## 
 ### Age model fit: 
 ################### 
 
@@ -70,8 +69,8 @@ save(data.new.age, year_age, fit.age,
 data.age.sensitivity = data.age %>% 
   left_join(data.duration %>% select(Population_ID, mean_duration_adjusted)) %>% 
   ungroup() %>% 
-  mutate(mean_age_entry = mean_age_adjusted - mean_duration_adjusted, 
-         year_entry = study_year - mean_duration_adjusted) %>%
+  mutate(mean_age_entry = mean_age_adjusted - mean_duration_adjusted,  # constructed age at entry into SW
+         year_entry = study_year - mean_duration_adjusted) %>% # constructed year of starting SW
   filter(!is.na(mean_age_entry)) %>% 
   mutate(year_entry_centered = year_entry - mean(year_entry)) 
 
