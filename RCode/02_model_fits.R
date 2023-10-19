@@ -134,7 +134,9 @@ save(fit.duration.noslope, fit.age.noslope,
 
 # duration model fit
 
-data.duration.exclMilo = data.duration %>% filter(Study != "Milovanovic et al., 2021")
+data.duration.exclMilo = data.duration %>% filter(Study != "Milovanovic et al., 2021") %>% 
+  ungroup() %>% 
+  mutate(year_centered = study_year - mean(study_year))
 year_duration.exclMilo = seq(from = min(data.duration$study_year), to = max(data.duration$study_year), by = 0.25)
 year_duration_centred.exclMilo = year_duration.exclMilo - mean(data.duration.exclMilo$study_year)
 data.new.duration.exclMilo = data.frame(intercept = rep(1, length(year_duration.exclMilo)), year_centered = year_duration_centred.exclMilo)
@@ -157,7 +159,9 @@ save(data.new.duration.exclMilo, data.duration.exclMilo, year_duration.exclMilo,
 
 # age model fit
 
-data.age.exclMilo = data.age %>% filter(Study != "Milovanovic et al., 2021")
+data.age.exclMilo = data.age %>% filter(Study != "Milovanovic et al., 2021") %>% 
+  ungroup() %>% 
+  mutate(year_centered = study_year - mean(study_year))
 year_age.exclMilo = seq(from = min(data.age$study_year), to = max(data.age$study_year), by = 0.25)
 year_age_centred.exclMilo = year_age.exclMilo - mean(data.age.exclMilo$study_year)
 data.new.age.exclMilo = data.frame(intercept = rep(1, length(year_age.exclMilo)), year_centered = year_age_centred.exclMilo)

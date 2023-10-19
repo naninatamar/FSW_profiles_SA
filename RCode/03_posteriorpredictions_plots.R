@@ -24,31 +24,6 @@ load("../../RData/duration_model_fit_exclMilo.rda")
 ### posterior predictions 
 ##########################
 
-
-sim.fit.age = as.matrix(fit.age) %>% 
-  as_tibble()
-
-pred.age = as.matrix(sim.fit.age[, c(36,34)]) %*% 
-  t(as.matrix(data.new.age)) %>% 
-  as_tibble() %>% 
-  mutate_all(exp) %>%
-  mutate_all(., function(x){x+10}) %>% 
-  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
-  pivot_longer(cols = everything()) %>%
-  mutate(quantile = gsub(".*\\_", "", name)) %>% 
-  mutate(name = gsub("\\_.*", "", name)) %>% 
-  pivot_wider(names_from = quantile, values_from = value) %>% 
-  bind_cols(year = year.fin)
-
-cutoff = 10
-
-xpred.fin = data.frame(x1 = rep(1, nrow(data.regr.age.fin)), 
-                       x2 = data.regr.age.fin$year_centered)
-
-year.fin = seq(from = min(data.regr.age.fin$studymidyear_prov), to = max(data.regr.age.fin$studymidyear_prov), by = 0.25)
-year_centred.fin = year.fin - mean(data.regr.age.fin$studymidyear_prov)
-data.new.age = data.frame(intercept = rep(1, length(year.fin)), year_centered = year_centred.fin)
-
 sim.fit.age = as.matrix(fit_untr) %>% 
   as_tibble()
 
@@ -990,7 +965,7 @@ r_lambda_quant.exclMilo = data.frame(t(r_lambda_quant.exclMilo))
 names(r_lambda_quant.exclMilo) = c("Q2.5", "Q50", "Q97.5")
 
 r_lambda_df.exclMilo = data.frame(r_lambda_mean.exclMilo, r_lambda_sd.exclMilo, r_lambda_quant.exclMilo)
-r_lambda_df.exclMilo$study_year = data.duration.excl.Milovanovic$study_year
+r_lambda_df.exclMilo$study_year = data.duration.exclMilo$study_year
 
 r_lambda.exclMilo = sim.dur.exclMilo %>% select(starts_with("lambda["))
 r_dur.exclMilo = 1/r_lambda.exclMilo
@@ -1015,8 +990,85 @@ r_dur_df.exclMilo = data.frame(r_dur_mean.exclMilo, r_dur_sd.exclMilo, r_dur_qua
 r_dur_df.exclMilo$study_year = data.duration.exclMilo$study_year
 
 
-# plot posterior prediciton of expected SW duration:
 
+
+# Age model
+
+sim.fit.age.exclMilo = as.matrix(fit.age.exclMilo) %>% 
+  as_tibble()
+
+cutoff = 10
+
+
+## posterior predictions of the expected FSW age - population mean (excluding random effect variability)
+pred.age.exclMilo = as.matrix(sim.fit.age.exclMilo[, c(24,22)]) %*% 
+  t(as.matrix(data.new.age.exclMilo)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age.exclMilo)
+
+## posterior predictions of the expected FSW age (including random effect variability)
+pred.re.age.exclMilo = sim.fit.age.exclMilo[, c(24,22,25)] %>% 
+  rowwise() %>% 
+  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu, b) %>% as.matrix() %*% 
+  t(as.matrix(data.new.age.exclMilo)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age.exclMilo) %>% 
+  select(year,Q0025_re = Q0025, Q05_re = Q05, Q0975_re = Q0975)
+
+
+pred.tot.age.exclMilo = pred.age.exclMilo %>% 
+  left_join(pred.re.age.exclMilo) 
+
+# posterior predictions of expected FSW age for each individual study: 
+
+random_beta.exclMilo = sim.fit.age.exclMilo %>% select(starts_with("beta["))
+common_alpha.exclMilo = sim.fit.age.exclMilo %>% select(alpha)
+
+studylevel_age.exclMilo = apply(random_beta.exclMilo, 
+                                MARGIN = 2, 
+                                function(x){pull(common_alpha.exclMilo)/x + cutoff})
+
+studylevel_age_mean.exclMilo = apply(X =studylevel_age.exclMilo, 
+                            MARGIN = 2,
+                            FUN = mean)
+
+studylevel_age_sd.exclMilo = apply(X = studylevel_age.exclMilo, 
+                          MARGIN = 2, 
+                          FUN = sd)
+
+studylevel_age_quant.exclMilo  = apply(X = studylevel_age.exclMilo, 
+                              MARGIN = 2, 
+                              FUN = quantile, 
+                              probs = c(0.025, 0.5, 0.975))
+
+studylevel_age_quant.exclMilo = data.frame(t(studylevel_age_quant.exclMilo))
+names(studylevel_age_quant.exclMilo) = c("Q2.5", "Q50", "Q97.5")
+
+age_df.exclMilo = data.frame(studylevel_age_mean.exclMilo, studylevel_age_sd.exclMilo, studylevel_age_quant.exclMilo)
+age_df.exclMilo$year = data.age.exclMilo$study_year
+
+age_df.exclMilo$studysize_age = data.age.exclMilo$studysize_age
+
+
+## Plots sensitivity analysis excluding Milovanovic study
+#########################################################
+
+
+# plot posterior prediction of expected SW duration excl Milovanovic study:
 
 (plot.dur.exclMilo  = pred.rate.tot.exclMilo %>% 
    ggplot(aes(x=year, y = rate_Q05)) + 
@@ -1034,5 +1086,29 @@ r_dur_df.exclMilo$study_year = data.duration.exclMilo$study_year
                    aes(y = Q50,  ymin = Q2.5, ymax = Q97.5, x = study_year), 
                    position = position_jitter(width = 0.2, height = 0), 
                    col = "gray40",
-                   alpha = 0.6)) ### this looks a bit strange check it!
+                   alpha = 0.6)) 
+
+# Plot posterior predictions of expected FSW age excl Milovanovic
+(plot.age.exclMilo = pred.tot.age.exclMilo %>% 
+    ggplot(aes(x=year, y = Q05)) +
+    geom_line(col = "tomato", size = 0.8)+
+    geom_ribbon(aes(ymin = Q0025, ymax = Q0975),
+                alpha = 0.3, fill = "tomato") +
+    theme_bw() +
+    labs(y = "Mean age (95% CrI) of female sex workers [years]", x = "Study year") +
+    geom_point(data = data.age.exclMilo, 
+               aes(y = mean_age_adjusted, x = study_year, size = studysize_age),
+               col = "black") +
+    geom_ribbon(data = pred.tot.age.exclMilo, 
+                aes(ymin = Q0025_re, ymax = Q0975_re), 
+                alpha = 0.2, fill = "tomato") +
+    theme(legend.position = "none")  +   
+    scale_y_continuous(breaks = c(24,26,28,30, 32, 34, 36, 38)) + 
+    scale_x_continuous(breaks = c(1996, 2000,2005, 2010, 2015, 2019)) + 
+    geom_pointrange(data = age_df.exclMilo, 
+                    aes(y = Q50,  ymin = Q2.5, ymax = Q97.5, x = year), 
+                    position = position_jitter(width = 0.2, height = 0), 
+                    col = "gray40", alpha = 0.6) + 
+    scale_size_continuous(range= c(0.1,5))
+)  #
 
