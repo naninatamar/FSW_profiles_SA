@@ -16,6 +16,7 @@ load("../../RData/age_model_fit.rda")
 load("../../RData/age_model_fit_sensitivity.rda")
 load("../../RData/age_model_fit_exclMilo.rda")
 load("../../RData/duration_model_fit_exclMilo.rda")
+load("../../RData/model_fits_noslope.rda")
 
 ######################
 ### FSW age:  ########
@@ -26,7 +27,7 @@ load("../../RData/duration_model_fit_exclMilo.rda")
 
 sim.fit.age = as.matrix(fit.age) %>% 
   as_tibble()
-
+cutoff = 10
 ## posterior predictions of the expected FSW age - population mean (excluding random effect variability)
 pred.age = as.matrix(sim.fit.age[, c(36,34)]) %*% 
   t(as.matrix(data.new.age)) %>% 
@@ -1213,4 +1214,143 @@ age_df.exclMilo$studysize_age = data.age.exclMilo$studysize_age
                     col = "gray40", alpha = 0.6) + 
     scale_size_continuous(range= c(0.1,5))
 )  #
+
+#####
+### posterior predictions with constant FSW age and SW duration
+################################################################
+
+sim.fit.age.noslope = as.matrix(fit.age.noslope) %>% 
+  as_tibble()
+
+pred.age_noslope = as.matrix(sim.fit.age.noslope[, c(35)]) %*% 
+  t(as.matrix(data.new.age[,1])) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age)
+
+
+pred.re.age_noslope = sim.fit.age.noslope[, c(35,36)] %>% 
+  rowwise() %>% 
+  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu) %>% as.matrix() %*% 
+  t(as.matrix(data.new.age[,1])) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age) %>% 
+  select(year,Q0025_re = Q0025, Q05_re = Q05, Q0975_re = Q0975)
+
+
+pred.tot.age_noslope = pred.age_noslope %>% 
+  left_join(pred.re.age_noslope) %>% 
+  filter(year<=2019, year >= 1996)
+
+
+
+## SW duration: 
+
+sim.dur.noslope = as.matrix(fit.duration.noslope) %>% 
+  as_tibble()
+
+pred.rate.noslope = as.matrix(sim.dur.noslope[, c(1)]) %*% 
+  t(as.matrix(data.new.duration[,1])) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_duration) %>% 
+  rename(rate_Q0025 = Q0025, 
+         rate_Q05 = Q05, 
+         rate_Q0975 = Q0975)
+
+
+pred.rate.re.noslope = sim.dur.noslope[, c(1,2)] %>% 
+  rowwise() %>% 
+  mutate(mu = rnorm(1, mu , tau)) %>% select(mu) %>% as.matrix() %*% 
+  t(as.matrix(data.new.duration[,1])) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_duration) %>% 
+  rename(rate_Q0025_re = Q0025, 
+         rate_Q05_re = Q05, 
+         rate_Q0975_re = Q0975)
+
+
+pred.rate.tot.noslope = pred.rate.noslope %>% 
+  left_join(pred.rate.re.noslope) %>% 
+  filter(year<=2019, year >= 1996)
+
+
+###
+#### Plots 
+
+
+(plot.age.constant = pred.tot.age %>% 
+    ggplot(aes(x=year, y = Q05)) +
+    geom_line(aes(lty = "1"), col = "tomato", size = 0.6)+
+    geom_ribbon(aes(ymin = Q0025, ymax = Q0975), lty =1,  alpha = 0.3, col ="tomato", fill = "tomato", size = 0.6) +
+    theme_bw() +
+    labs(y = "Mean age (95% CrI) of female sex workers [years]", x = "Study year") +
+    geom_point(data = data.age,
+               aes(y = mean_age_adjusted, 
+                   x = study_year, size = studysize_age),
+               col = "black") +
+    geom_ribbon(data = pred.tot.age, aes(ymin = Q0025_re, ymax = Q0975_re), alpha = 0.2, fill = "tomato") +
+    theme(legend.position = "none")  +   scale_y_continuous(breaks = c(24,26,28,30, 32, 34, 36, 38)) + 
+    scale_x_continuous(breaks = c(1996, 2000,2005, 2010, 2015, 2019)) + 
+    scale_size_continuous(range= c(0.1,5)) + 
+    geom_line(aes(lty = "2"), data = pred.tot.age_noslope, col = "gray40",  size = 0.6)+
+    geom_ribbon(data = pred.tot.age_noslope, aes(ymin = Q0025, ymax = Q0975), lty = 2, size = 0.6,   alpha = 0.3, fill = "gray40", col = "gray40")  +
+    geom_ribbon(data = pred.tot.age_noslope, aes(ymin = Q0025_re, ymax = Q0975_re), alpha = 0.2, fill = "gray40") + 
+    scale_linetype_manual(values = c(1,2), labels = c("time trend in FSW age", "constant FSW age"), name = NULL) + 
+    guides(size = FALSE, fill = FALSE, colour = FALSE) +
+    theme(legend.position = "bottom") 
+)  #
+
+
+(plot.duration.constant = pred.rate.tot %>% 
+    ggplot(aes(x=year, y = rate_Q05)) + 
+    geom_line(aes(lty = "1"), col = "dodgerblue", size = 0.6)+ 
+    geom_ribbon(aes(ymin = rate_Q0025, ymax = rate_Q0975), size = 0.6, lty =1,  col = "dodgerblue", alpha = 0.3, fill = "dodgerblue") + 
+    theme_bw() + 
+    labs(y = "Mean duration (95%-CrI) of sex work [years]", x = "Study year") + 
+    scale_x_continuous(breaks = c(1996, 2000, 2005, 2010, 2015, 2019)) +
+    geom_ribbon(aes(ymin = rate_Q0025_re, ymax = rate_Q0975_re), alpha = 0.2, fill = "dodgerblue") + 
+    geom_point(data = data.duration, aes(y = mean_duration_adjusted, 
+                                         x = study_year, size = studysize_duration), 
+               col = "black") + 
+    theme(legend.position = "none") + 
+    scale_size_continuous(range = c(0.5, 5)) +
+    scale_y_continuous(breaks =c(2.5, 5, 7.5, 10, 12.5 ,15, 17.5)) + 
+    geom_line(aes(lty="2"), data = pred.rate.tot.noslope, col = "gray40", size = 0.6)+ 
+    geom_ribbon(data = pred.rate.tot.noslope, 
+                aes(ymin = rate_Q0025, ymax = rate_Q0975), 
+                size = 0.6, alpha = 0.3, fill = "gray40", col = "gray40" ,lty =2) + 
+    geom_ribbon(data = pred.rate.tot.noslope, 
+                aes(ymin = rate_Q0025_re, ymax = rate_Q0975_re), alpha = 0.2, fill = "gray40")  + 
+    scale_linetype_manual(values = c(1,2), labels = c("time trend in SW duration", "constant SW duration"), name = NULL) +
+    theme(legend.position = "bottom") + 
+    guides(size = FALSE, col = FALSE , fill = FALSE)
+  
+  ) 
+
+cowplot::plot_grid(plot.duration.constant, plot.age.constant, labels = LETTERS)
 
