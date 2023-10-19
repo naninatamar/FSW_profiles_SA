@@ -46,13 +46,13 @@ generated quantities{
   vector[N] log_lik;
   vector[N_new] expmeandur_pred;
   vector[N_new] meandur_pred;
-  vector[N_new] expdur_pred;
+  vector[N_new] dur_pred;
   for (n in 1:N){
     log_lik[n] = gamma_lpdf(y[n] | s[n], 1/exp(alpha[ll[n]] + x[n]*beta)*s[n]);
   }
   for (h in 1:N_new){
     expmeandur_pred[h] = exp(mu + x_new[h]*beta);  ## predictions of expected SW duration without random effect variability
     meandur_pred[h] = exp(normal_rng(mu, tau) + x_new[h]*beta); ## predictions of expected SW duration including random effect variability
-    expdur_pred[h] = exponential_rng(1/expmeandur_pred[h]); ## predictions of individual SW durations
+    dur_pred[h] = exponential_rng(1/meandur_pred[h]); ## predictions of individual SW durations
   }
 }

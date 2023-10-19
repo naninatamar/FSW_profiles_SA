@@ -24,7 +24,7 @@ load("../../RData/duration_model_fit_exclMilo.rda")
 ### posterior predictions 
 ##########################
 
-sim.fit.age = as.matrix(fit_untr) %>% 
+sim.fit.age = as.matrix(fit.age) %>% 
   as_tibble()
 
 ## posterior predictions of the expected FSW age - population mean (excluding random effect variability)
@@ -291,6 +291,26 @@ studylevel_sd_df = data.frame(studylevel_sd_mean, studylevel_sd_sd, studylevel_s
 studylevel_sd_df$study_year = data.age$study_year
 
 
+# posterior distributions of the individual ages of FSW
+age.indiv = sim.fit.age %>% select(starts_with("age_pred[")) 
+
+age_mean.indiv = apply(X= age.indiv, 
+                 MARGIN = 2, 
+                 FUN = mean)
+
+age_quant.indiv  = apply(X = age.indiv, 
+                   MARGIN = 2, 
+                   FUN = quantile, 
+                   probs = c(0.025,0.25, 0.5, 0.75, 0.975))
+
+
+age_quant.indiv = data.frame(t(age_quant.indiv))
+names(age_quant.indiv) = c("Q2.5", "Q25", "Q50","Q75", "Q97.5")
+age_quant.indiv$year = year_age
+
+age_quant.indiv$mean = as.vector(t(age_mean.indiv))
+
+
 ### Plots: Age model fit
 #########################
 
@@ -396,15 +416,16 @@ sim.dur = as.matrix(fit.duration) %>%
   as_tibble()
 
 pred.rate = as.matrix(sim.dur[, c(1,3)]) %*% 
-  t(as.matrix(data.new.dur)) %>% 
+  t(as.matrix(data.new.duration)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
-  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), 
+                     Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
   pivot_longer(cols = everything()) %>%
   mutate(quantile = gsub(".*\\_", "", name)) %>% 
   mutate(name = gsub("\\_.*", "", name)) %>% 
   pivot_wider(names_from = quantile, values_from = value) %>% 
-  bind_cols(year = year_dur) %>% 
+  bind_cols(year = year_duration) %>% 
   rename(rate_Q0025 = Q0025, 
          rate_Q05 = Q05, 
          rate_Q0975 = Q0975)
@@ -413,7 +434,7 @@ pred.rate = as.matrix(sim.dur[, c(1,3)]) %*%
 pred.rate.re = sim.dur[, c(1,2,3)] %>% 
   rowwise() %>% 
   mutate(mu = rnorm(1, mu , tau)) %>% select(mu, beta) %>% as.matrix() %*% 
-  t(as.matrix(data.new.dur)) %>% 
+  t(as.matrix(data.new.duration)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
   summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
@@ -421,7 +442,7 @@ pred.rate.re = sim.dur[, c(1,2,3)] %>%
   mutate(quantile = gsub(".*\\_", "", name)) %>% 
   mutate(name = gsub("\\_.*", "", name)) %>% 
   pivot_wider(names_from = quantile, values_from = value) %>% 
-  bind_cols(year = year_dur) %>% 
+  bind_cols(year = year_duration) %>% 
   rename(rate_Q0025_re = Q0025, 
          rate_Q05_re = Q05, 
          rate_Q0975_re = Q0975)
@@ -503,7 +524,7 @@ alpha_df = alpha_df[order(alpha_df$alpha_mean), ]
 alpha_df$a_rank = c(1:dim(alpha_df)[1])
 
 
-random_interc_dur_mean = sim.dur.gamma %>% select(mu, tau) %>% 
+random_interc_dur_mean = sim.dur %>% select(mu, tau) %>% 
   rowwise() %>% 
   mutate(dur_mu_ci = rnorm(1, mean = mu, sd = tau)) 
 
@@ -514,10 +535,38 @@ dur_mu_dat = data.frame(amu_Q05 = rep(median(random_interc_dur_mean$mu), nrow(al
                         amu_Q0975_re = rep(quantile(random_interc_dur_mean$dur_mu_ci, 0.975), nrow(alpha_df)+2), 
                         rank = 0:(nrow(alpha_df)+1))
 
+# posterior predicitons of individual-level SW durations:
+
+dur.indiv = sim.dur %>% select(starts_with("dur_pred[")) 
+
+dur_mean.indiv = apply(X= dur.indiv, 
+                 MARGIN = 2, 
+                 FUN = mean)
+
+dur_quant.indiv  = apply(X = dur.indiv, 
+                   MARGIN = 2, 
+                   FUN = quantile, 
+                   probs = c(0.025,0.25, 0.5,0.75, 0.975))
+
+dur_min.indiv = apply(X = dur.indiv, 
+                MARGIN = 2, 
+                FUN = min)
+
+dur_max.indiv = apply(X =dur.indiv, 
+                      MARGIN = 2,
+                      FUN = max)
+
+dur_quant.indiv = data.frame(t(dur_quant.indiv))
+names(dur_quant.indiv) = c("Q2.5", "Q25", "Q50","Q75", "Q97.5")
+dur_quant.indiv$year = year_duration
+
+dur_quant.indiv$mean = as.vector(t(dur_mean.indiv))
+
+
 ### Plots: Duration model fit
 ##############################
 
-# plot posterior prediciton of expected SW duration:
+# plot posterior prediction of expected SW duration:
 
 (plot.dur  = pred.rate.tot %>% 
     ggplot(aes(x=year, y = rate_Q05)) + 
@@ -704,8 +753,6 @@ data.sens.comb2 = data.sens.comb %>% filter(type =="during SW (main analysis)") 
 
 
 # posterior predictions of random intercepts of sensitivity analysis (age at entry model)
-
-## posterior predictions of random intercept of sensitivity analysis model 
 
 random_interc_entry = sim.sens %>% select(starts_with("a["))
 
@@ -896,6 +943,61 @@ tot_mu.dat = a_mu_dat.temp %>% bind_rows(a_mu_entry_dat.temp) %>% bind_rows(dur_
     labs(x = "Population ID"))
 
 
+####
+#### Plot ranges of individual level SW duraations and FSW ages from main analysis:
+###################################################################################
+
+# Duration model:
+
+(plot.dur.indiv =  pred.rate.tot %>% 
+   ggplot(aes(x=year, y = rate_Q05)) + 
+   geom_line(data  = dur_quant.indiv, aes(y = mean), col = "chartreuse", size = 0.8, lty = 2)+ 
+   theme_bw() + 
+   labs(y = "Duration (95% CrI) of sex work [years]", x = "Study year") + 
+   scale_x_continuous(breaks = c(1996, 2000, 2005, 2010, 2015, 2019)) +
+   geom_ribbon(aes(ymin = rate_Q0025_re, ymax = rate_Q0975_re), alpha = 0.3, fill = "dodgerblue") + 
+   geom_point(data = data.duration, aes(y = mean_duration_adjusted, 
+                                        x = study_year, size = studysize_duration), col = "black") + 
+   geom_ribbon(data = dur_quant.indiv, 
+               aes(ymin = Q2.5, y = Q50, ymax = Q97.5), alpha = 0.2, col = "chartreuse", size =1, 
+               fill = "chartreuse") +
+  theme(legend.position = "none") + 
+   scale_size_continuous(range = c(0.5, 5)) +
+   scale_y_continuous(breaks =seq(from = 0, to = 32.5, by= 2.5)) + 
+   geom_pointrange(data = r_dur_df, 
+                   aes(y = Q50,  ymin = Q2.5, ymax = Q97.5, x = study_year), 
+                   position = position_jitter(width = 0.2, height = 0), 
+                   col = "gray40",
+                   alpha = 0.6)) 
+
+# Age model:
+
+(plot.age.indiv = pred.tot.age %>% 
+   ggplot(aes(x=year, y = Q05)) +
+   geom_line(data = age_quant.indiv, aes(y = mean), col = "chartreuse", size = 0.8, lty = 2)+
+   theme_bw() +
+   labs(y = "Age (95% CrI) of female sex workers [years]", x = "Study year") +
+   geom_point(data = data.age, 
+              aes(y = mean_age_adjusted, 
+                  x = study_year, size = studysize_age),
+              col = "black") +
+   geom_ribbon(data = pred.tot.age, 
+               aes(ymin = Q0025_re, ymax = Q0975_re), alpha = 0.3, fill = "tomato") +
+   geom_ribbon(data = age_quant.indiv, 
+               aes(ymin = Q2.5, y = Q50, ymax = Q97.5), alpha = 0.2, col = "chartreuse", size =1, 
+               fill = "chartreuse") + 
+   theme(legend.position = "none")  +   
+   scale_y_continuous(breaks = seq(from = 16, to = 52, by = 2)) + 
+   scale_x_continuous(breaks = c(1996, 2000,2005, 2010, 2015, 2019)) + 
+   geom_pointrange(data = age_df, 
+                   aes(y = Q50,  ymin = Q2.5, ymax = Q97.5, x = year), 
+                   position = position_jitter(width = 0.2, height = 0), 
+                   col = "gray40", alpha = 0.6) + 
+   scale_size_continuous(range= c(0.1,5))
+)  #
+
+# combined: 
+cowplot::plot_grid(plot.dur.indiv, plot.age.indiv, labels = LETTERS, nrow = 1)
 
 ############
 ### Sensitivity analysis: Excluding Milovanovic study
