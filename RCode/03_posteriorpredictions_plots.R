@@ -44,7 +44,7 @@ pred.age = as.matrix(sim.fit.age[, c(36,34)]) %*%
 ## posterior predictions of the expected FSW age (including random effect variability)
 pred.re.age = sim.fit.age[, c(36,34,37)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu, b) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -92,40 +92,40 @@ age_df$studysize_age = data.age$studysize_age
 
 ### posterior predictions of random intercepts
 
-random_interc = sim.fit.age %>% select(starts_with("a["))
-a_mean = apply(X = random_interc, 
+random_interc = sim.fit.age %>% select(starts_with("eta["))
+eta_mean = apply(X = random_interc, 
                MARGIN = 2, 
                FUN = mean)
 
-a_sd = apply(X = random_interc, 
+eta_sd = apply(X = random_interc, 
              MARGIN = 2, 
              FUN = sd)
 
-a_quant  = apply(X = random_interc, 
+eta_quant  = apply(X = random_interc, 
                  MARGIN = 2, 
                  FUN = quantile, 
                  probs = c(0.025, 0.5, 0.975))
 
-a_quant = data.frame(t(a_quant))
-names(a_quant) = c("Q2.5", "Q50", "Q97.5")
+eta_quant = data.frame(t(eta_quant))
+names(eta_quant) = c("Q2.5", "Q50", "Q97.5")
 
-a_df = data.frame(a_mean, a_sd, a_quant)
+eta_df = data.frame(mean = eta_mean, sd = eta_sd, eta_quant)
 
-a_df$study = as.character(data.age$Population_ID)
-a_df = a_df[order(a_df$a_mean), ]
-a_df$a_rank = c(1:dim(a_df)[1])
+eta_df$study = as.character(data.age$Population_ID)
+eta_df = eta_df[order(eta_df$mean), ]
+eta_df$rank = c(1:dim(eta_df)[1])
 
 # posterior distribution of random intercepts (pop-mean):
-random_interc_mean = sim.fit.age %>% select(a_mu, a_tau) %>% 
+random_interc_mean = sim.fit.age %>% select(eta_mu, eta_tau) %>% 
   rowwise() %>% 
-  mutate(a_mu_ci = rnorm(1, mean = a_mu, sd = a_tau)) 
+  mutate(eta_ci = rnorm(1, mean = eta_mu, sd = eta_tau)) 
 
-a_mu_dat = data.frame(amu_Q05 = rep(median(random_interc_mean$a_mu), nrow(a_df)+2),
-                      amu_Q0025 = rep(quantile(random_interc_mean$a_mu, 0.025), nrow(a_df)+2), 
-                      amu_Q0975 = rep(quantile(random_interc_mean$a_mu, 0.975), nrow(a_df)+2), 
-                      amu_Q0025_re = rep(quantile(random_interc_mean$a_mu_ci, 0.025), nrow(a_df)+2), 
-                      amu_Q0975_re = rep(quantile(random_interc_mean$a_mu_ci, 0.975), nrow(a_df)+2), 
-                      rank = 0:(nrow(a_df)+1))
+eta_dat = data.frame(Q05 = rep(median(random_interc_mean$eta_mu), nrow(eta_df)+2),
+                      Q0025 = rep(quantile(random_interc_mean$eta_mu, 0.025), nrow(eta_df)+2), 
+                      Q0975 = rep(quantile(random_interc_mean$eta_mu, 0.975), nrow(eta_df)+2), 
+                      Q0025_re = rep(quantile(random_interc_mean$eta_ci, 0.025), nrow(eta_df)+2), 
+                      Q0975_re = rep(quantile(random_interc_mean$eta_ci, 0.975), nrow(eta_df)+2), 
+                      rank = 0:(nrow(eta_df)+1))
 
 ### posterior predictions of  parameter estimates of initial Gamma(alpha, beta) distribution
 
@@ -162,8 +162,8 @@ pred.beta = as.matrix(sim.fit.age[, c(36,34)]) %*% # pop-level predictions (with
 
 pred.beta.re = sim.fit.age[, c(36,34,37)] %>% # predictions including random effect variability
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% 
-  select(mu, b) %>% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% 
+  select(eta, omega) %>% 
   as.matrix() %*% 
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
@@ -245,7 +245,7 @@ pred.sd = as.matrix(sim.fit.age[, c(36,34)]) %*%
 
 pred.sd.re = sim.fit.age[, c(36,34,37)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu, b) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -264,7 +264,7 @@ pred.sd.tot = pred.sd %>%
 
 ## posterior prediciton of SD FSW age for each study:
 
-random_interc = sim.fit.age %>% select(starts_with("a["))
+random_interc = sim.fit.age %>% select(starts_with("eta["))
 
 random_beta = sim.fit.age %>% select(starts_with("beta["))
 common_alpha = sim.fit.age %>% select(alpha)
@@ -434,7 +434,7 @@ pred.rate = as.matrix(sim.dur[, c(1,3)]) %*%
 
 pred.rate.re = sim.dur[, c(1,2,3)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, mu , tau)) %>% select(mu, beta) %>% as.matrix() %*% 
+  mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta, gamma) %>% as.matrix() %*% 
   t(as.matrix(data.new.duration)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -500,41 +500,41 @@ r_dur_df$study_year = data.duration$study_year
 
 # posterior predictions random intercepts duration model 
 
-random_interc_dur = sim.dur %>% select(starts_with("alpha["))
+random_interc_dur = sim.dur %>% select(starts_with("theta["))
 
-alpha_mean = apply(X = random_interc_dur, 
+theta_mean = apply(X = random_interc_dur, 
                    MARGIN = 2, 
                    FUN = mean)
 
-alpha_sd = apply(X = random_interc_dur, 
+theta_sd = apply(X = random_interc_dur, 
                  MARGIN = 2, 
                  FUN = sd)
 
-alpha_quant  = apply(X = random_interc_dur, 
+theta_quant  = apply(X = random_interc_dur, 
                      MARGIN = 2, 
                      FUN = quantile, 
                      probs = c(0.025, 0.5, 0.975))
 
-alpha_quant = data.frame(t(alpha_quant))
-names(alpha_quant) = c("Q2.5", "Q50", "Q97.5")
+theta_quant = data.frame(t(theta_quant))
+names(theta_quant) = c("Q2.5", "Q50", "Q97.5")
 
-alpha_df = data.frame(alpha_mean, alpha_sd, alpha_quant)
+theta_df = data.frame(mean = theta_mean, sd = theta_sd, theta_quant)
 
-alpha_df$study = as.character(data.duration$Population_ID)
-alpha_df = alpha_df[order(alpha_df$alpha_mean), ]
-alpha_df$a_rank = c(1:dim(alpha_df)[1])
+theta_df$study = as.character(data.duration$Population_ID)
+theta_df = theta_df[order(theta_df$mean), ]
+theta_df$rank = c(1:dim(theta_df)[1])
 
 
-random_interc_dur_mean = sim.dur %>% select(mu, tau) %>% 
+random_interc_dur_mean = sim.dur %>% select(theta_mu, theta_tau) %>% 
   rowwise() %>% 
-  mutate(dur_mu_ci = rnorm(1, mean = mu, sd = tau)) 
+  mutate(theta_ci = rnorm(1, mean = theta_mu, sd = theta_tau)) 
 
-dur_mu_dat = data.frame(amu_Q05 = rep(median(random_interc_dur_mean$mu), nrow(alpha_df)+2),
-                        amu_Q0025 = rep(quantile(random_interc_dur_mean$mu, 0.025), nrow(alpha_df)+2), 
-                        amu_Q0975 = rep(quantile(random_interc_dur_mean$mu, 0.975), nrow(alpha_df)+2), 
-                        amu_Q0025_re = rep(quantile(random_interc_dur_mean$dur_mu_ci, 0.025), nrow(alpha_df)+2), 
-                        amu_Q0975_re = rep(quantile(random_interc_dur_mean$dur_mu_ci, 0.975), nrow(alpha_df)+2), 
-                        rank = 0:(nrow(alpha_df)+1))
+theta_dat = data.frame(Q05 = rep(median(random_interc_dur_mean$theta_mu), nrow(theta_df)+2),
+                       Q0025 = rep(quantile(random_interc_dur_mean$theta_mu, 0.025), nrow(theta_df)+2), 
+                       Q0975 = rep(quantile(random_interc_dur_mean$theta_mu, 0.975), nrow(theta_df)+2), 
+                       Q0025_re = rep(quantile(random_interc_dur_mean$theta_ci, 0.025), nrow(theta_df)+2), 
+                       Q0975_re = rep(quantile(random_interc_dur_mean$theta_ci, 0.975), nrow(theta_df)+2), 
+                       rank = 0:(nrow(theta_df)+1))
 
 # posterior predicitons of individual-level SW durations:
 
@@ -649,7 +649,7 @@ pred.sens = as.matrix(sim.sens[, c(26,24)]) %*%
 
 pred.sens.re = sim.sens[, c(26,24,27)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu, b) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age.sens)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -681,7 +681,7 @@ pred.sens.pred = as.matrix(sim.sens[, c(26,24)]) %*%
 
 pred.sens.re.pred = sim.sens[, c(26,24,27)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu, b) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age.sens.pred)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -755,40 +755,40 @@ data.sens.comb2 = data.sens.comb %>% filter(type =="during SW (main analysis)") 
 
 # posterior predictions of random intercepts of sensitivity analysis (age at entry model)
 
-random_interc_entry = sim.sens %>% select(starts_with("a["))
+random_interc_entry = sim.sens %>% select(starts_with("eta["))
 
-a_entry_mean= apply(X = random_interc_entry, 
+eta_entry_mean= apply(X = random_interc_entry, 
                     MARGIN = 2, 
                     FUN = mean)
 
-a_entry_sd = apply(X = random_interc_entry, 
+eta_entry_sd = apply(X = random_interc_entry, 
                    MARGIN = 2, 
                    FUN = sd)
 
-a_entry_quant  = apply(X = random_interc_entry, 
+eta_entry_quant  = apply(X = random_interc_entry, 
                        MARGIN = 2, 
                        FUN = quantile, 
                        probs = c(0.025, 0.5, 0.975))
 
-a_entry_quant = data.frame(t(a_entry_quant))
-names(a_entry_quant) = c("Q2.5", "Q50", "Q97.5")
+eta_entry_quant = data.frame(t(eta_entry_quant))
+names(eta_entry_quant) = c("Q2.5", "Q50", "Q97.5")
 
-a_entry_df = data.frame(a_entry_mean, a_entry_sd, a_entry_quant)
+eta_entry_df = data.frame(mean = eta_entry_mean, sd = eta_entry_sd, eta_entry_quant)
 
-a_entry_df$study = as.character(data.age.sensitivity$Population_ID)
-a_entry_df = a_entry_df[order(a_entry_df$a_entry_mean), ]
-a_entry_df$a_rank = c(1:dim(a_entry_df)[1])
+eta_entry_df$study = as.character(data.age.sensitivity$Population_ID)
+eta_entry_df = eta_entry_df[order(eta_entry_df$mean), ]
+eta_entry_df$rank = c(1:dim(eta_entry_df)[1])
 
-random_interc_mean_entry = sim.sens %>% select(a_mu, a_tau) %>% 
+random_interc_mean_entry = sim.sens %>% select(eta_mu, eta_tau) %>% 
   rowwise() %>% 
-  mutate(a_mu_ci = rnorm(1, mean = a_mu, sd = a_tau)) 
+  mutate(eta_ci = rnorm(1, mean = eta_mu, sd = eta_tau)) 
 
-a_mu_entry_dat = data.frame(amu_Q05 = rep(median(random_interc_mean_entry$a_mu), nrow(a_entry_df)+2),
-                            amu_Q0025 = rep(quantile(random_interc_mean_entry$a_mu, 0.025), nrow(a_entry_df)+2), 
-                            amu_Q0975 = rep(quantile(random_interc_mean_entry$a_mu, 0.975), nrow(a_entry_df)+2), 
-                            amu_Q0025_re = rep(quantile(random_interc_mean_entry$a_mu_ci, 0.025), nrow(a_entry_df)+2), 
-                            amu_Q0975_re = rep(quantile(random_interc_mean_entry$a_mu_ci, 0.975), nrow(a_entry_df)+2), 
-                            rank = 0:(nrow(a_entry_df)+1))
+eta_entry_dat = data.frame(Q05 = rep(median(random_interc_mean_entry$eta_mu), nrow(eta_entry_df)+2),
+                           Q0025 = rep(quantile(random_interc_mean_entry$eta_mu, 0.025), nrow(eta_entry_df)+2), 
+                           Q0975 = rep(quantile(random_interc_mean_entry$eta_mu, 0.975), nrow(eta_entry_df)+2), 
+                           Q0025_re = rep(quantile(random_interc_mean_entry$eta_ci, 0.025), nrow(eta_entry_df)+2), 
+                           Q0975_re = rep(quantile(random_interc_mean_entry$eta_ci, 0.975), nrow(eta_entry_df)+2), 
+                           rank = 0:(nrow(eta_entry_df)+1))
 
 ### Plot: sensitivity analysis
 #############################
@@ -827,15 +827,15 @@ a_mu_entry_dat = data.frame(amu_Q05 = rep(median(random_interc_mean_entry$a_mu),
 ########################################################################
 
 b.age = sim.fit.age %>% 
-  select(fsw_age_slope = b) %>%
+  select(fsw_age_slope = omega) %>%
   as_tibble()
 
 b.age.entry = sim.sens %>% 
-  select(fsw_age_entry_slope = b) %>% 
+  select(fsw_age_entry_slope = omega) %>% 
   as_tibble() 
 
 b.dur = sim.dur %>% 
-  select(duration_slope=beta) %>% 
+  select(duration_slope = gamma) %>% 
   as_tibble() 
 
 b.tot = b.age %>% bind_cols(b.age.entry) %>% bind_cols(b.dur)
@@ -874,45 +874,39 @@ b.tot.sum = b.tot %>%
 
 
 # random intercepts
-a_df.temp = a_df %>% 
+eta_df.temp = eta_df %>% 
   mutate(type = "Age model\nMain analysis\n(FSW age during SW)")
 
-a_entry_df.temp = a_entry_df %>% 
-  mutate(type = "Age model\nSensitivity analysis\n(FSW age at entry into SW)") %>% 
-  rename("a_mean"="a_entry_mean", "a_sd" = "a_entry_sd") 
+eta_entry_df.temp = eta_entry_df %>% 
+  mutate(type = "Age model\nSensitivity analysis\n(FSW age at entry into SW)") 
 
-
-alpha_df.temp = alpha_df %>%
-  rename("a_mean"="alpha_mean", "a_sd" = "alpha_sd") %>% 
+theta_df.temp = theta_df %>%
   mutate(type = "Duration model")
 
 
-intercepts_tot = a_df.temp %>% bind_rows(a_entry_df.temp) %>% bind_rows(alpha_df.temp) %>% 
+intercepts_tot = eta_df.temp %>% bind_rows(eta_entry_df.temp) %>% bind_rows(theta_df.temp) %>% 
   filter(!is.na(study)) %>% 
   mutate(type = factor(type, levels = c("Duration model", 
                                         "Age model\nMain analysis\n(FSW age during SW)", 
                                         "Age model\nSensitivity analysis\n(FSW age at entry into SW)")))
 
-a_mu_dat.temp = a_mu_dat %>% 
+eta_dat.temp = eta_dat %>% 
   mutate(type = "Age model\nMain analysis\n(FSW age during SW)") %>% 
   mutate(col = "1") %>% 
-  rename('a_rank' = 'rank') %>% 
-  left_join(a_df.temp %>% select(study, a_rank))
+  left_join(eta_df.temp %>% select(study, rank))
 
-a_mu_entry_dat.temp = a_mu_entry_dat %>% 
+eta_entry_dat.temp = eta_entry_dat %>% 
   mutate(type = "Age model\nSensitivity analysis\n(FSW age at entry into SW)") %>% 
   mutate(col = "2")   %>% 
-  rename('a_rank' = 'rank') %>% 
-  left_join(a_entry_df.temp %>% select(study, a_rank))
+  left_join(eta_entry_df.temp %>% select(study, rank))
 
-dur_mu_dat.temp = dur_mu_dat %>% 
+theta_dat.temp = theta_dat %>% 
   mutate(type = "Duration model") %>% 
   mutate(col ="3") %>%
-  rename('a_rank' = 'rank') %>% 
-  left_join(alpha_df.temp %>% select(study, a_rank))
+  left_join(theta_df.temp %>% select(study, rank))
 
 
-tot_mu.dat = a_mu_dat.temp %>% bind_rows(a_mu_entry_dat.temp) %>% bind_rows(dur_mu_dat.temp) %>% 
+tot_intercepts.dat = eta_dat.temp %>% bind_rows(eta_entry_dat.temp) %>% bind_rows(theta_dat.temp) %>% 
   filter(!is.na(study)) %>% 
   mutate(type = factor(type, levels = c("Duration model", 
                                         "Age model\nMain analysis\n(FSW age during SW)", 
@@ -920,14 +914,14 @@ tot_mu.dat = a_mu_dat.temp %>% bind_rows(a_mu_entry_dat.temp) %>% bind_rows(dur_
 
 (plot_intercepts = intercepts_tot %>%  
     ggplot(aes(x = study, y = Q50, group = type)) +
-    geom_ribbon(data = tot_mu.dat, 
-                aes(y = amu_Q05, ymin  = amu_Q0025, ymax = amu_Q0975, x = study, fill = col), 
+    geom_ribbon(data = tot_intercepts.dat, 
+                aes(y = Q05, ymin  = Q0025, ymax = Q0975, x = study, fill = col), 
                 alpha = 0.4) +
-    geom_ribbon(data = tot_mu.dat, aes(y = amu_Q05, ymin  = amu_Q0025_re, ymax = amu_Q0975_re, x = study, 
+    geom_ribbon(data = tot_intercepts.dat, aes(y = Q05, ymin  = Q0025_re, ymax = Q0975_re, x = study, 
                                        fill = col), 
                 alpha = 0.2) +
-    geom_line(data = tot_mu.dat, 
-              aes(y = amu_Q05, x = study, col =col), 
+    geom_line(data = tot_intercepts.dat, 
+              aes(y = Q05, x = study, col =col), 
               size = 1, lty = 2) +
     geom_pointrange(aes(ymin = Q2.5, ymax = Q97.5)) + 
     # , 
@@ -945,7 +939,7 @@ tot_mu.dat = a_mu_dat.temp %>% bind_rows(a_mu_entry_dat.temp) %>% bind_rows(dur_
 
 
 ####
-#### Plot ranges of individual level SW duraations and FSW ages from main analysis:
+#### Plot ranges of individual level SW durations and FSW ages from main analysis:
 ###################################################################################
 
 # Duration model:
@@ -1028,7 +1022,7 @@ pred.rate.exclMilo = as.matrix(sim.dur.exclMilo[, c(1,3)]) %*%
 
 pred.rate.re.exclMilo = sim.dur.exclMilo[, c(1,2,3)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, mu , tau)) %>% select(mu, beta) %>% as.matrix() %*% 
+  mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta, gamma) %>% as.matrix() %*% 
   t(as.matrix(data.new.duration.exclMilo)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -1119,7 +1113,7 @@ pred.age.exclMilo = as.matrix(sim.fit.age.exclMilo[, c(24,22)]) %*%
 ## posterior predictions of the expected FSW age (including random effect variability)
 pred.re.age.exclMilo = sim.fit.age.exclMilo[, c(24,22,25)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu, b) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age.exclMilo)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -1215,6 +1209,9 @@ age_df.exclMilo$studysize_age = data.age.exclMilo$studysize_age
     scale_size_continuous(range= c(0.1,5))
 )  #
 
+
+cowplot::plot_grid(plot.dur.exclMilo, plot.age.exclMilo, labels = LETTERS)
+
 #####
 ### posterior predictions with constant FSW age and SW duration
 ################################################################
@@ -1237,7 +1234,7 @@ pred.age_noslope = as.matrix(sim.fit.age.noslope[, c(35)]) %*%
 
 pred.re.age_noslope = sim.fit.age.noslope[, c(35,36)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta) %>% as.matrix() %*% 
   t(as.matrix(data.new.age[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -1279,7 +1276,7 @@ pred.rate.noslope = as.matrix(sim.dur.noslope[, c(1)]) %*%
 
 pred.rate.re.noslope = sim.dur.noslope[, c(1,2)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, mu , tau)) %>% select(mu) %>% as.matrix() %*% 
+  mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta) %>% as.matrix() %*% 
   t(as.matrix(data.new.duration[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 

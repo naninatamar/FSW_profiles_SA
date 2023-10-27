@@ -19,13 +19,11 @@ data {
 
 transformed data{
   array[N] real<lower=c> y_trans;
-  // array[N] real<lower=0> coeff_var;
   array[N_sd] real log_coeff_var;
   real mean_log_coeff_var; 
   real<lower=0> sd_log_coeff_var;
-  // real<lower=0> sd_coeff_var;
   for (i in 1:N){
-    y_trans[i] = y[i]-c;
+    y_trans[i] = y[i]-c; 
   }
   for (j in 1:N_sd){
     log_coeff_var[j] = log(sd_y[j]/y_trans[ind_sd[j]]); ## logarithm of coeff of variation for those study populations that reported SD of age
@@ -35,11 +33,11 @@ transformed data{
   }
   
 parameters{
-  array[L] real a; // parameter (group level intercept)
-  real b; // paramter (overall slope)
+  array[L] real eta; // parameter (group level intercept)
+  real omega; // paramter (overall slope)
   real log_c_var; // parameter (coefficient of variation)
-  real a_mu; // hyperparameter (pop-mean [random intercept])
-  real<lower=0> a_tau; //hyperparameter (variance random effect [random intercept])
+  real eta_mu; // hyperparameter (pop-mean [random intercept])
+  real<lower=0> eta_tau; //hyperparameter (variance random effect [random intercept])
 }
 
 transformed parameters{
@@ -48,20 +46,20 @@ transformed parameters{
   array[N] real beta_overall; // rate of assumed gamma distribtuion (excludion random effect variabilty)
   alpha = 1/exp(log_c_var)^2;
   for (n in 1:N){
-    beta[n] = 1/(exp(log_c_var)^2 *exp(a[ll[n]] + x[n]*b));
-    beta_overall[n] =  1/(exp(log_c_var)^2 *exp(a_mu + x[n]*b));
+    beta[n] = 1/(exp(log_c_var)^2 *exp(eta[ll[n]] + x[n]*omega));
+    beta_overall[n] =  1/(exp(log_c_var)^2 *exp(eta_mu + x[n]*omega));
     }
 }
 
 model {
   array[N] real Alpha; // shape of gamma distribution (for mean FSW ages)
   array[N] real Beta; // rate of gamma distribution (for mean FSW ages)
-    a_mu ~ normal(0,10); // weakly informative hyper-prior distribution
-    b ~ normal(0,10); // weakly informative hyper-prior distribution
-    a_tau ~ exponential(01);
+    eta_mu ~ normal(0,10); // weakly informative hyper-prior distribution
+    omega ~ normal(0,10); // weakly informative hyper-prior distribution
+    eta_tau ~ exponential(01);
     log_c_var ~ normal(mean_log_coeff_var, sd_log_coeff_var); ## informative prior distribution
     for (l in 1:L){
-      a[l] ~ normal(a_mu, a_tau); 
+      eta[l] ~ normal(eta_mu, eta_tau); 
     }
   for (n in 1:N){
     Alpha[n] = s[n]* alpha;
@@ -80,10 +78,10 @@ generated quantities{
     log_lik[n] = gamma_lpdf(y_trans[n] | s[n]* alpha, s[n]* beta[n]);
   }
   for (h in 1:N_new){
-    expmeanage_pred[h] = exp(a_mu + x_new[h]*b); //  predictions of expected FSW age excluding random effect variability
-    expbeta_pred[h] = 1/(exp(log_c_var)^2 * exp(a_mu + x_new[h]*b));  // predictions of rate parameter excluding random effect variability
-    beta_pred[h] = 1/(exp(log_c_var)^2 * exp(normal_rng(a_mu, a_tau) + x_new[h]*b)); // predictions of the rate parameter including random effect variability
-    meanage_pred[h] = exp(normal_rng(a_mu, a_tau) + x_new[h]*b); // predicitons of expected FSW age including random effect variability
+    expmeanage_pred[h] = exp(eta_mu + x_new[h]*omega); //  predictions of expected FSW age excluding random effect variability
+    expbeta_pred[h] = 1/(exp(log_c_var)^2 * exp(eta_mu + x_new[h]*omega));  // predictions of rate parameter excluding random effect variability
+    beta_pred[h] = 1/(exp(log_c_var)^2 * exp(normal_rng(eta_mu, eta_tau) + x_new[h]*omega)); // predictions of the rate parameter including random effect variability
+    meanage_pred[h] = exp(normal_rng(eta_mu, eta_tau) + x_new[h]*omega); // predicitons of expected FSW age including random effect variability
     age_pred[h] = gamma_rng(1/(exp(log_c_var)^2),1/(exp(log_c_var)^2)*1/meanage_pred[h]); // predictions of individual level FSW ages
   }
     for (k in 1:N_new){

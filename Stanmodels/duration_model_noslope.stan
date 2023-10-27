@@ -10,30 +10,30 @@ data {
   }
 
 parameters{
-  real mu; // hyperparameter (pop-mean [random intercept])
-  real<lower=0> tau; // hyperparemeter (variance random effect [random intercept])
-  array[L] real alpha; // parameter (group level intercept)
+  real theta_mu; // hyperparameter (pop-mean [random intercept])
+  real<lower=0> theta_tau; // hyperparemeter (variance random effect [random intercept])
+  array[L] real theta; // parameter (group level intercept)
 }
 transformed parameters{
   array[N] real lambda; // group-level rate parameter of exponential distribution
   array[N] real lambda_overall; // population-level rate parameter of exp distr (excluding random effect variability)
   for (n in 1:N){
-    lambda[n] = 1/(exp(alpha[ll[n]])); // expected SW duration 
-    lambda_overall[n] =  1/(exp(mu)); // expected SW duration excluding random effect variability
+    lambda[n] = 1/(exp(theta[ll[n]])); // expected SW duration 
+    lambda_overall[n] =  1/(exp(theta_mu)); // expected SW duration excluding random effect variability
     }
 }
 
 model {
   array[N] real Alpha;
   array[N] real Beta;
-  mu ~ normal(0,10); // weakly informative hyper-prior distribution
-  tau ~ exponential(01); // weakly informative hyper-prior distribution
+  theta_mu ~ normal(0,10); // weakly informative hyper-prior distribution
+  theta_tau ~ exponential(01); // weakly informative hyper-prior distribution
   for (l in 1:L){
-      alpha[l] ~ normal(mu, tau); 
+      theta[l] ~ normal(theta_mu, theta_tau); 
     }
   for (n in 1:N){
     Alpha[n] = s[n]; 
-    Beta[n] = 1/exp(alpha[ll[n]])*s[n];
+    Beta[n] = 1/exp(theta[ll[n]])*s[n];
     target += gamma_lpdf(y[n] | Alpha[n], Beta[n]); 
   }
 }
@@ -44,11 +44,11 @@ generated quantities{
   vector[N_new] meandur_pred;
   vector[N_new] dur_pred;
   for (n in 1:N){
-    log_lik[n] = gamma_lpdf(y[n] | s[n], 1/exp(alpha[ll[n]])*s[n]);
+    log_lik[n] = gamma_lpdf(y[n] | s[n], 1/exp(theta[ll[n]])*s[n]);
   }
   for (h in 1:N_new){
-    expmeandur_pred[h] = exp(mu);  ## predictions of expected SW duration without random effect variability
-    meandur_pred[h] = exp(normal_rng(mu, tau)); ## predictions of expected SW duration including random effect variability
+    expmeandur_pred[h] = exp(theta_mu);  ## predictions of expected SW duration without random effect variability
+    meandur_pred[h] = exp(normal_rng(theta_mu, theta_tau)); ## predictions of expected SW duration including random effect variability
     dur_pred[h] = exponential_rng(1/meandur_pred[h]); ## predictions of individual SW durations
   }
 }

@@ -57,7 +57,7 @@ data.new.age = data.frame(intercept = rep(1, length(year.fin)), year_centered = 
 
 age.long_re = sim.fit.age[, c(36,34,37)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu, b) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -139,7 +139,7 @@ mu.long = as.matrix(sim.dur[, c(1,3)]) %*%
 
 mu.long.re = sim.dur[, c(1,2,3)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, mu , tau)) %>% select(mu, beta) %>% as.matrix() %*% 
+  mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta, gamma) %>% as.matrix() %*% 
   t(as.matrix(data.new.dur)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -251,7 +251,7 @@ sim.fit.age.noslope = as.matrix(fit.age.noslope) %>%
 
 age.long_re_noslope = sim.fit.age.noslope[, c(35,36)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, a_mu , a_tau)) %>% select(mu) %>% as.matrix() %*% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta) %>% as.matrix() %*% 
   t(as.matrix(data.new.age[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -325,7 +325,7 @@ mu.long_noslope = as.matrix(sim.dur_noslope[, c(1)]) %*%
 
 mu.long.re_noslope = sim.dur_noslope[, c(1,2)] %>% 
   rowwise() %>% 
-  mutate(mu = rnorm(1, mu , tau)) %>% select(mu) %>% as.matrix() %*% 
+  mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta) %>% as.matrix() %*% 
   t(as.matrix(data.new.dur[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
