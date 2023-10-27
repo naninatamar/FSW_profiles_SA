@@ -938,8 +938,8 @@ tot_mu.dat = a_mu_dat.temp %>% bind_rows(a_mu_entry_dat.temp) %>% bind_rows(dur_
     scale_fill_manual(values = c("tomato", "purple", "dodgerblue")) + 
     theme_bw() + 
     scale_y_continuous(breaks = seq(from = 0.4, to =4, by = 0.2), 
-                       name = expression(paste("Varying intercept ", eta[j], 
-                                               " (Duration model) / ", theta[j], " (Age model)"))) + 
+                       name = expression(paste("Varying intercept ", theta[j],
+                                               " (Duration model) / ", eta[j],  " (Age model)"))) + 
     theme(legend.position = "none") + 
     labs(x = "Population ID"))
 

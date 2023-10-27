@@ -487,7 +487,7 @@ lambda.sc3_noslope.new = data.sc3_noslope.new %>%
     geom_ribbon(aes(ymin = lambda_lwr, ymax = lambda_upr, fill = type, col = type, linetype = type), 
                 linetype = 1,  alpha = 0.5) + 
     theme_bw() + 
-    labs(y=expression(paste("HIV incidence rate ", theta, " in female sex workers")), 
+    labs(y=expression(paste("HIV incidence rate ", rho, " in female sex workers")), 
          x = "Calendar year") + 
     scale_color_manual(values =(c("gray40", "seagreen"))) + 
     scale_fill_manual(values =(c("gray40", "seagreen"))) + 
@@ -609,10 +609,10 @@ fakedata2 = data.frame(y = c(0.5, 0.5), ymin = c(0.55, 0.55),
     geom_line(data = fakedata2, aes(y = y, x = x, col = factor_increase)) + 
     geom_ribbon(data = fakedata2, aes(ymin = ymin,ymax = ymax, y=y, x = x, fill = factor_increase), alpha = 0.5) + 
     theme_bw() + 
-    labs(y=expression(paste("HIV incidence rate ", theta, " in female sex workers")), 
+    labs(y=expression(paste("HIV incidence rate ", rho, " in female sex workers")), 
          x = "Calendar year", 
-         fill = "Assumed ratio r of HIV prevalence of FSW at entry\ninto sex work compared to general population", 
-         col =  "Assumed ratio r of HIV prevalence of FSW at entry\ninto sex work compared to general population") + 
+         fill = "Assumed ratio r of HIV prevalence in FSW at entry\ninto sex work compared to general female population", 
+         col =  "Assumed ratio r of HIV prevalence in FSW at entry\ninto sex work compared to general female population") + 
     scale_fill_gradient(high = "chartreuse", low = "seagreen", breaks = c(1.0, 1.25, 1.5, 1.75), labels  = c("1", "1.25", "1.5", "1.75")) + 
     scale_color_gradient(high = "chartreuse", low = "seagreen", breaks = c(1.0, 1.25, 1.5, 1.75),
                          labels  = c("1", "1.25", "1.5", "1.75")) +
