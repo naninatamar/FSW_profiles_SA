@@ -6,7 +6,7 @@ require(rootSolve)
 
 ### 
 
-data = read.csv2("../Data/FSW_summary_data_reported.csv")
+data = read.csv2("../Data/FSW_profiles_reported_summary_data.csv")
 
 ####################################
 ### Data for the duration model ####
@@ -20,7 +20,8 @@ data.duration.t1 = data %>%
   select(-contains("age")) %>%
   select(- Province, -Location, - exclusion_num) %>% 
   select(- duration_Quantile_2, -duration_Probability_2) %>% 
-  rename(quantile_duration = duration_Quantile_1, probability_duration = duration_Probability_1)
+  rename(quantile_duration = duration_Quantile_1, probability_duration = duration_Probability_1) %>% 
+  select(-duration_Probability_rds_1)
 
 
 data.duration.t2 = data %>% 
@@ -29,7 +30,8 @@ data.duration.t2 = data %>%
   select(- Province, -Location, - exclusion_num) %>% 
   select(- duration_Quantile_1, -duration_Probability_1) %>% 
   rename(quantile_duration = duration_Quantile_2, probability_duration = duration_Probability_2) %>% 
-  filter(!is.na(quantile_duration))
+  filter(!is.na(quantile_duration))%>% 
+  select(-duration_Probability_rds_1)
 
 
 data.duration = data.duration.t1 %>% 
@@ -50,6 +52,15 @@ data.duration = data.duration.t1 %>%
   distinct() %>% 
   ungroup() %>% 
   mutate(year_centered = study_year - mean(study_year)) 
+
+data.duration.rds = data %>% filter(!is.na(duration_Probability_rds_1)) %>% 
+  select(Population_ID, quantile_duration = duration_Quantile_1, probability_duration = duration_Probability_rds_1) %>% 
+  rowwise() %>% 
+  mutate(mean_duration_adjusted_rds = 1/(log(1/(1-probability_duration))/quantile_duration)) %>% 
+  select(Population_ID, mean_duration_adjusted_rds)
+  
+data.duration = data.duration %>% left_join(data.duration.rds)
+
 
 ###############################
 ### Data for the age model ####
@@ -101,7 +112,7 @@ gamma_truncated_cdf = function(x, lb=0, shape, rate){
 data.age.quant.t1 = data.age %>% 
   filter(!is.na(age_Quantile_1)) %>% 
   select(Population_ID, exclusion_num_imp, contains("Quantile")) %>% 
-  pivot_longer(cols = c(age_Quantile_1, age_Quantile_2, age_Quantile_3, age_Quantile_4, age_Quantile_5, age_Quantile_6, age_Quantile_7), 
+  pivot_longer(cols = c(age_Quantile_1, age_Quantile_2, age_Quantile_3, age_Quantile_4), 
                names_to = "whichquant", values_to = "quantile_age") %>% 
   filter(!is.na(quantile_age)) %>% 
   mutate(whichquant = gsub("age_Quantile_", "", whichquant))
@@ -109,8 +120,9 @@ data.age.quant.t1 = data.age %>%
 
 data.age.quant.t2 = data.age %>% 
   filter(!is.na(age_Quantile_1)) %>% 
-  select(Population_ID, exclusion_num_imp, contains("Probability")) %>% 
-  pivot_longer(cols = c(age_Probability_1, age_Probability_2, age_Probability_3, age_Probability_4, age_Probability_5, age_Probability_6, age_Probability_7), 
+  select(Population_ID, exclusion_num_imp, contains("Probability")) %>%
+  select(-contains("rds")) %>% 
+  pivot_longer(cols = c(age_Probability_1, age_Probability_2, age_Probability_3, age_Probability_4), 
                names_to = "whichquant", values_to = "probability_age") %>% 
   filter(!is.na(probability_age)) %>% 
   mutate(whichquant = gsub("age_Probability_", "", whichquant))         
@@ -191,8 +203,46 @@ data.age.max = data.age.max %>%
          SD_age_adjusted_ap3 = sqrt(root1_max/root2_max^2)) %>% 
   select(-Mean_age, - Max_age, -exclusion_num_imp)
 
-## data.age
 
+# rds adjusted quantiles
+
+data.age.quant.t1_rds = data.age %>% 
+  filter(!is.na(age_Quantile_1) & !is.na(age_Probability_rds_1)) %>% 
+  select(Population_ID, exclusion_num_imp, contains("Quantile")) %>% 
+  pivot_longer(cols = c(age_Quantile_1, age_Quantile_2, age_Quantile_3, age_Quantile_4), 
+               names_to = "whichquant", values_to = "quantile_age") %>% 
+  filter(!is.na(quantile_age)) %>% 
+  mutate(whichquant = gsub("age_Quantile_", "", whichquant))
+
+data.age.quant.t2_rds = data.age %>% 
+  filter(!is.na(age_Quantile_1) & !is.na(age_Probability_rds_1)) %>% 
+  select(Population_ID, exclusion_num_imp, contains("Probability_rds")) %>%
+  pivot_longer(cols = c(age_Probability_rds_1, age_Probability_rds_2, age_Probability_rds_3, age_Probability_rds_4), 
+               names_to = "whichquant", values_to = "probability_age") %>% 
+  filter(!is.na(probability_age)) %>% 
+  mutate(whichquant = gsub("age_Probability_rds_", "", whichquant))         
+
+
+data.age.quant_rds = data.age.quant.t1_rds %>% left_join(data.age.quant.t2_rds)
+
+data.quant.shape_rds = data.age.quant_rds %>% group_by(Population_ID ) %>% 
+  summarise(root1_quant = function_quantopt(quantile = quantile_age-c_offset, prob = probability_age, trunc_age = exclusion_num_imp-c_offset)$shape)
+
+data.quant.rate_rds =  data.age.quant_rds %>% group_by(Population_ID ) %>% 
+  summarise(root2_quant = function_quantopt(quantile = quantile_age-c_offset, prob = probability_age, trunc_age = exclusion_num_imp-c_offset)$rate)
+
+data.age.quant_rds = data.age.quant_rds %>% 
+  select(Population_ID) %>% 
+  group_by(Population_ID) %>% 
+  summarise(tot_quantavail = n()) %>% 
+  left_join(data.quant.shape_rds) %>% 
+  left_join(data.quant.rate_rds) %>% 
+  mutate(mean_age_adjusted_ap2 = root1_quant/root2_quant + c_offset, 
+         SD_age_adjusted_ap2 = sqrt(root1_quant/root2_quant^2)) %>% 
+  filter(!is.na(mean_age_adjusted_ap2)) %>% 
+  select(-tot_quantavail, -root1_quant, -root2_quant, -SD_age_adjusted_ap2, mean_age_adjusted_rds = mean_age_adjusted_ap2)
+
+# bring all together
 data.age = data.age %>% 
   select(Study, Population_ID, exclusion_num_imp, study_year, studysize_age,Mean_age,  SD_age, root1, root2, mean_age_adjusted_ap1, SD_age_adjusted_ap1) %>% 
   left_join(data.age.quant) %>% 
@@ -213,5 +263,32 @@ data.age = data.age %>%
                                        TRUE ~ "Approach 3")) %>%  ## take app3 if only mean but no SD and not quantiles are reported
   select(-contains("root"), -contains("_ap"), - Mean_age, - SD_age) %>% 
   ungroup() %>% 
+  left_join(data.age.quant_rds) %>% 
   mutate(year_centered = study_year - mean(study_year))   
 
+
+data.duration = data.duration %>% mutate(rds_weights_avail = as.numeric(!is.na(mean_duration_adjusted_rds)),
+                                         mean_duration_adjusted_rds = 
+                                         case_when(is.na(mean_duration_adjusted_rds) ~ mean_duration_adjusted, 
+                                                     TRUE ~ mean_duration_adjusted_rds))
+
+data.age = data.age %>% mutate(rds_weights_avail = as.numeric(!is.na(mean_age_adjusted_rds)),
+                               mean_age_adjusted_rds = 
+                                 case_when(is.na(mean_age_adjusted_rds) ~ mean_age_adjusted, 
+                                           TRUE ~ mean_age_adjusted_rds))
+
+save(data, data.age, data.duration, file = "../../RData/data_analysis.rda")
+# # temporary:
+# 
+# data.age %>% filter(Study %in% c("UCSF, 2015", "UCSF, 2018"))
+# load("../../../data_rdsnords.rda")
+# 
+# data.age$mean_age_adjusted[data.age$Population_ID %in% c("XVI", "XVII", "XVIII", "XXVII", "XXVIII", "XXIX")]
+# c(as.numeric(data_rdsornot[1, 3:5]), 
+#   as.numeric(data_rdsornot[3, 3:5]))
+# 
+# c(as.numeric(data_rdsornot[2, 3:5]), 
+#   as.numeric(data_rdsornot[4, 3:5]))
+# 
+# data.age$mean_age_adjusted[data.age$Population_ID %in% c("XVI", "XVII", "XVIII", "XXVII", "XXVIII", "XXIX")] = c(as.numeric(data_rdsornot[2, 3:5]), 
+#                                                                                                                  as.numeric(data_rdsornot[4, 3:5]))

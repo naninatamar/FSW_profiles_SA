@@ -16,7 +16,7 @@ data {
   }
 
 transformed data{
-  array[N] real<lower=c> y_trans;
+  array[N] real<lower=0> y_trans;
   array[N_sd] real log_coeff_var;
   real mean_log_coeff_var; 
   real<lower=0> sd_log_coeff_var;

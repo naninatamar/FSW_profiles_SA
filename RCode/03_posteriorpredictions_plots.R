@@ -17,6 +17,7 @@ load("../../RData/age_model_fit_sensitivity.rda")
 load("../../RData/age_model_fit_exclMilo.rda")
 load("../../RData/duration_model_fit_exclMilo.rda")
 load("../../RData/model_fits_noslope.rda")
+load("../../RData/model_fits_rds.rda")
 
 ######################
 ### FSW age:  ########
@@ -29,7 +30,7 @@ sim.fit.age = as.matrix(fit.age) %>%
   as_tibble()
 cutoff = 10
 ## posterior predictions of the expected FSW age - population mean (excluding random effect variability)
-pred.age = as.matrix(sim.fit.age[, c(36,34)]) %*% 
+pred.age = as.matrix(sim.fit.age[, c("eta_mu","omega")]) %*% 
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -42,7 +43,7 @@ pred.age = as.matrix(sim.fit.age[, c(36,34)]) %*%
   bind_cols(year = year_age)
 
 ## posterior predictions of the expected FSW age (including random effect variability)
-pred.re.age = sim.fit.age[, c(36,34,37)] %>% 
+pred.re.age = sim.fit.age[, c("eta_mu","omega","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age)) %>% 
@@ -147,7 +148,7 @@ data.alpha = data.new.age %>%
 cvar = exp(as.matrix(sim.fit.age[, "log_c_var"]))
 
 
-pred.beta = as.matrix(sim.fit.age[, c(36,34)]) %*% # pop-level predictions (without random effect variability)
+pred.beta = as.matrix(sim.fit.age[, c("eta_mu","omega")]) %*% # pop-level predictions (without random effect variability)
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -160,7 +161,7 @@ pred.beta = as.matrix(sim.fit.age[, c(36,34)]) %*% # pop-level predictions (with
   bind_cols(year = year_age)
 
 
-pred.beta.re = sim.fit.age[, c(36,34,37)] %>% # predictions including random effect variability
+pred.beta.re = sim.fit.age[, c("eta_mu","omega","eta_tau")] %>% # predictions including random effect variability
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% 
   select(eta, omega) %>% 
@@ -230,7 +231,7 @@ randombeta_df = randombeta_df %>%
 
 ## posterior predictions of standard deviation of FSW age:
 
-pred.sd = as.matrix(sim.fit.age[, c(36,34)]) %*% 
+pred.sd = as.matrix(sim.fit.age[, c("eta_mu","omega")]) %*% 
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -243,7 +244,7 @@ pred.sd = as.matrix(sim.fit.age[, c(36,34)]) %*%
   bind_cols(year = year_age)
 
 
-pred.sd.re = sim.fit.age[, c(36,34,37)] %>% 
+pred.sd.re = sim.fit.age[, c("eta_mu","omega","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age)) %>% 
@@ -416,7 +417,7 @@ cowplot::plot_grid(plot.age,
 sim.dur = as.matrix(fit.duration) %>% 
   as_tibble()
 
-pred.rate = as.matrix(sim.dur[, c(1,3)]) %*% 
+pred.rate = as.matrix(sim.dur[, c("theta_mu","gamma")]) %*% 
   t(as.matrix(data.new.duration)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -432,7 +433,7 @@ pred.rate = as.matrix(sim.dur[, c(1,3)]) %*%
          rate_Q0975 = Q0975)
 
 
-pred.rate.re = sim.dur[, c(1,2,3)] %>% 
+pred.rate.re = sim.dur[, c("theta_mu","theta_tau","gamma")] %>% 
   rowwise() %>% 
   mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta, gamma) %>% as.matrix() %*% 
   t(as.matrix(data.new.duration)) %>% 
@@ -619,7 +620,8 @@ cowplot::plot_grid(plot.dur, plot.rate.lamba, labels = LETTERS, nrow = 1, rel_wi
 ###################################################
 
 # predition data (1993 - 2013)
-year.sens = c(seq(from = min(data.age.sensitivity$year_entry), to = max(data.age.sensitivity$year_entry), by = 0.25), max(data.age.sensitivity$year_entry))
+year.sens = c( min(data.age.sensitivity$year_entry), 
+               seq(from = ceiling(min(data.age.sensitivity$year_entry)), to = max(data.age.sensitivity$year_entry), by = 0.25), max(data.age.sensitivity$year_entry))
 year_centred.sens = year.sens - mean(data.age.sensitivity$year_entry)
 data.new.age.sens = data.frame(intercept = rep(1, length(year.sens)), 
                                year_entry_centered = year_centred.sens)
@@ -634,7 +636,7 @@ data.new.age.sens.pred = data.frame(intercept = rep(1, length(year.sens.pred)),
 sim.sens = as.matrix(fit.age.sens) %>% 
   as_tibble()
 
-pred.sens = as.matrix(sim.sens[, c(26,24)]) %*% 
+pred.sens = as.matrix(sim.sens[, c("eta_mu","omega")]) %*% 
   t(as.matrix(data.new.age.sens)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -647,7 +649,7 @@ pred.sens = as.matrix(sim.sens[, c(26,24)]) %*%
   bind_cols(year = year.sens)
 
 
-pred.sens.re = sim.sens[, c(26,24,27)] %>% 
+pred.sens.re = sim.sens[, c("eta_mu","omega","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age.sens)) %>% 
@@ -666,7 +668,7 @@ pred.sens.re = sim.sens[, c(26,24,27)] %>%
 pred.sens.tot = pred.sens %>% 
   left_join(pred.sens.re) 
 
-pred.sens.pred = as.matrix(sim.sens[, c(26,24)]) %*% 
+pred.sens.pred = as.matrix(sim.sens[, c("eta_mu","omega")]) %*% 
   t(as.matrix(data.new.age.sens.pred)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -679,7 +681,7 @@ pred.sens.pred = as.matrix(sim.sens[, c(26,24)]) %*%
   bind_cols(year = year.sens.pred)
 
 
-pred.sens.re.pred = sim.sens[, c(26,24,27)] %>% 
+pred.sens.re.pred = sim.sens[, c("eta_mu","omega","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age.sens.pred)) %>% 
@@ -1006,7 +1008,7 @@ cowplot::plot_grid(plot.dur.indiv, plot.age.indiv, labels = LETTERS, nrow = 1)
 sim.dur.exclMilo = as.matrix(fit.duration.exclMilo) %>% 
   as_tibble()
 
-pred.rate.exclMilo = as.matrix(sim.dur.exclMilo[, c(1,3)]) %*% 
+pred.rate.exclMilo = as.matrix(sim.dur.exclMilo[, c("theta_mu","gamma")]) %*% 
   t(as.matrix(data.new.duration.exclMilo)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -1020,7 +1022,7 @@ pred.rate.exclMilo = as.matrix(sim.dur.exclMilo[, c(1,3)]) %*%
          rate_Q05 = Q05, 
          rate_Q0975 = Q0975)
 
-pred.rate.re.exclMilo = sim.dur.exclMilo[, c(1,2,3)] %>% 
+pred.rate.re.exclMilo = sim.dur.exclMilo[, c("theta_mu","theta_tau","gamma")] %>% 
   rowwise() %>% 
   mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta, gamma) %>% as.matrix() %*% 
   t(as.matrix(data.new.duration.exclMilo)) %>% 
@@ -1098,7 +1100,7 @@ cutoff = 10
 
 
 ## posterior predictions of the expected FSW age - population mean (excluding random effect variability)
-pred.age.exclMilo = as.matrix(sim.fit.age.exclMilo[, c(24,22)]) %*% 
+pred.age.exclMilo = as.matrix(sim.fit.age.exclMilo[, c("eta_mu","omega")]) %*% 
   t(as.matrix(data.new.age.exclMilo)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -1111,7 +1113,7 @@ pred.age.exclMilo = as.matrix(sim.fit.age.exclMilo[, c(24,22)]) %*%
   bind_cols(year = year_age.exclMilo)
 
 ## posterior predictions of the expected FSW age (including random effect variability)
-pred.re.age.exclMilo = sim.fit.age.exclMilo[, c(24,22,25)] %>% 
+pred.re.age.exclMilo = sim.fit.age.exclMilo[, c("eta_mu","omega","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age.exclMilo)) %>% 
@@ -1219,7 +1221,7 @@ cowplot::plot_grid(plot.dur.exclMilo, plot.age.exclMilo, labels = LETTERS)
 sim.fit.age.noslope = as.matrix(fit.age.noslope) %>% 
   as_tibble()
 
-pred.age_noslope = as.matrix(sim.fit.age.noslope[, c(35)]) %*% 
+pred.age_noslope = as.matrix(sim.fit.age.noslope[, c("eta_mu")]) %*% 
   t(as.matrix(data.new.age[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -1232,7 +1234,7 @@ pred.age_noslope = as.matrix(sim.fit.age.noslope[, c(35)]) %*%
   bind_cols(year = year_age)
 
 
-pred.re.age_noslope = sim.fit.age.noslope[, c(35,36)] %>% 
+pred.re.age_noslope = sim.fit.age.noslope[, c("eta_mu","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta) %>% as.matrix() %*% 
   t(as.matrix(data.new.age[,1])) %>% 
@@ -1259,7 +1261,7 @@ pred.tot.age_noslope = pred.age_noslope %>%
 sim.dur.noslope = as.matrix(fit.duration.noslope) %>% 
   as_tibble()
 
-pred.rate.noslope = as.matrix(sim.dur.noslope[, c(1)]) %*% 
+pred.rate.noslope = as.matrix(sim.dur.noslope[, c("theta_mu")]) %*% 
   t(as.matrix(data.new.duration[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -1274,7 +1276,7 @@ pred.rate.noslope = as.matrix(sim.dur.noslope[, c(1)]) %*%
          rate_Q0975 = Q0975)
 
 
-pred.rate.re.noslope = sim.dur.noslope[, c(1,2)] %>% 
+pred.rate.re.noslope = sim.dur.noslope[, c("theta_mu","theta_tau")] %>% 
   rowwise() %>% 
   mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta) %>% as.matrix() %*% 
   t(as.matrix(data.new.duration[,1])) %>% 
@@ -1350,4 +1352,251 @@ pred.rate.tot.noslope = pred.rate.noslope %>%
   ) 
 
 cowplot::plot_grid(plot.duration.constant, plot.age.constant, labels = LETTERS)
+
+
+
+#####
+### posterior predictions with RDS adjusted proportions
+#######################################################
+
+## age model
+
+sim.fit.age.rds = as.matrix(fit.age.rds) %>% 
+  as_tibble()
+
+cutoff = 10
+## posterior predictions of the expected FSW age - population mean (excluding random effect variability)
+pred.age.rds = as.matrix(sim.fit.age.rds[, c("eta_mu","omega")]) %*% 
+  t(as.matrix(data.new.age)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age)
+
+## posterior predictions of the expected FSW age (including random effect variability)
+pred.re.age.rds = sim.fit.age.rds[, c("eta_mu","omega","eta_tau")] %>% 
+  rowwise() %>% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
+  t(as.matrix(data.new.age)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age) %>% 
+  select(year,Q0025_re = Q0025, Q05_re = Q05, Q0975_re = Q0975)
+
+
+pred.tot.age.rds = pred.age.rds %>% 
+  left_join(pred.re.age.rds) 
+
+# posterior predictions of expected FSW age for each individual study: 
+
+random_beta.rds = sim.fit.age.rds %>% select(starts_with("beta["))
+common_alpha.rds = sim.fit.age.rds %>% select(alpha)
+
+studylevel_age.rds = apply(random_beta.rds, MARGIN = 2, function(x){pull(common_alpha.rds)/x + cutoff})
+
+studylevel_age_mean.rds = apply(X =studylevel_age.rds, 
+                            MARGIN = 2,
+                            FUN = mean)
+
+studylevel_age_sd.rds = apply(X = studylevel_age.rds, 
+                          MARGIN = 2, 
+                          FUN = sd)
+
+studylevel_age_quant.rds  = apply(X = studylevel_age.rds, 
+                              MARGIN = 2, 
+                              FUN = quantile, 
+                              probs = c(0.025, 0.5, 0.975))
+
+studylevel_age_quant.rds = data.frame(t(studylevel_age_quant.rds))
+names(studylevel_age_quant.rds) = c("Q2.5", "Q50", "Q97.5")
+
+age_df.rds = data.frame(studylevel_age_mean.rds, studylevel_age_sd.rds, studylevel_age_quant.rds)
+age_df.rds$year = data.age$study_year
+
+age_df.rds$studysize_age = data.age$studysize_age
+
+
+## duration model 
+
+sim.dur.rds = as.matrix(fit.duration.rds) %>% 
+  as_tibble()
+
+pred.rate.rds = as.matrix(sim.dur.rds[, c("theta_mu","gamma")]) %*% 
+  t(as.matrix(data.new.duration)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), 
+                     Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_duration) %>% 
+  rename(rate_Q0025 = Q0025, 
+         rate_Q05 = Q05, 
+         rate_Q0975 = Q0975)
+
+
+pred.rate.re.rds = sim.dur.rds[, c("theta_mu","theta_tau","gamma")] %>% 
+  rowwise() %>% 
+  mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta, gamma) %>% as.matrix() %*% 
+  t(as.matrix(data.new.duration)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_duration) %>% 
+  rename(rate_Q0025_re = Q0025, 
+         rate_Q05_re = Q05, 
+         rate_Q0975_re = Q0975)
+
+
+pred.rate.tot.rds = pred.rate.rds %>% 
+  left_join(pred.rate.re.rds) 
+
+### posterior predictions for each study: 
+
+r_lambda.rds = sim.dur.rds %>% select(starts_with("lambda["))
+
+
+r_lambda_mean.rds = apply(X =r_lambda.rds, 
+                      MARGIN = 2,
+                      FUN = mean)
+
+r_lambda_sd.rds = apply(X = r_lambda.rds, 
+                    MARGIN = 2, 
+                    FUN = sd)
+
+r_lambda_quant.rds  = apply(X = r_lambda.rds, 
+                        MARGIN = 2, 
+                        FUN = quantile, 
+                        probs = c(0.025, 0.5, 0.975))
+
+r_lambda_quant.rds = data.frame(t(r_lambda_quant.rds))
+names(r_lambda_quant.rds) = c("Q2.5", "Q50", "Q97.5")
+
+r_lambda_df.rds = data.frame(r_lambda_mean.rds, r_lambda_sd.rds, r_lambda_quant.rds)
+r_lambda_df.rds$study_year = data.duration$study_year
+
+r_lambda.rds = sim.dur.rds %>% select(starts_with("lambda["))
+r_dur.rds = 1/r_lambda.rds
+
+r_dur_mean.rds = apply(X =r_dur.rds, 
+                   MARGIN = 2,
+                   FUN = mean)
+
+r_dur_sd.rds = apply(X = r_dur.rds, 
+                 MARGIN = 2, 
+                 FUN = sd)
+
+r_dur_quant.rds  = apply(X = r_dur.rds, 
+                     MARGIN = 2, 
+                     FUN = quantile, 
+                     probs = c(0.025, 0.5, 0.975))
+
+r_dur_quant.rds = data.frame(t(r_dur_quant.rds))
+names(r_dur_quant.rds) = c("Q2.5", "Q50", "Q97.5")
+
+r_dur_df.rds = data.frame(r_dur_mean.rds, r_dur_sd.rds, r_dur_quant.rds)
+r_dur_df.rds$study_year = data.duration$study_year
+
+
+### Plots:
+###########
+
+# Plot posterior predictions of expected FSW age
+(plot.age.rds = pred.tot.age.rds %>% 
+   ggplot(aes(x=year, y = Q05)) +
+   geom_line(col = "tomato", size = 0.8)+
+   geom_ribbon(aes(ymin = Q0025, ymax = Q0975),
+               alpha = 0.3, fill = "tomato") +
+   theme_bw() +
+   labs(y = "Mean age (95% CrI) of female sex workers [years]", x = "Study year") +
+   geom_point(data = data.age, 
+              aes(y = mean_age_adjusted_rds, x = study_year, size = studysize_age),
+              col = "black") +
+   geom_ribbon(data = pred.tot.age.rds, 
+               aes(ymin = Q0025_re, ymax = Q0975_re), 
+               alpha = 0.2, fill = "tomato") +
+   theme(legend.position = "none")  +   
+   scale_y_continuous(breaks = c(24,26,28,30, 32, 34, 36, 38)) + 
+   scale_x_continuous(breaks = c(1996, 2000,2005, 2010, 2015, 2019)) + 
+   geom_pointrange(data = age_df.rds, 
+                   aes(y = Q50,  ymin = Q2.5, ymax = Q97.5, x = year), 
+                   position = position_jitter(width = 0.2, height = 0), 
+                   col = "gray40", alpha = 0.6) + 
+   scale_size_continuous(range= c(0.1,5))
+)  #
+
+# plot posterior prediction of expected SW duration:
+
+(plot.dur.rds  = pred.rate.tot.rds %>% 
+    ggplot(aes(x=year, y = rate_Q05)) + 
+    geom_line(col = "dodgerblue", size = 0.8)+ 
+    geom_ribbon(aes(ymin = rate_Q0025, ymax = rate_Q0975), alpha = 0.3, fill = "dodgerblue") + 
+    theme_bw() + 
+    labs(y = "Mean duration (95%-CrI) of sex work [years]", x = "Study year") + 
+    scale_x_continuous(breaks = c(1996, 2000, 2005, 2010, 2015, 2019)) +
+    geom_ribbon(aes(ymin = rate_Q0025_re, ymax = rate_Q0975_re), alpha = 0.2, fill = "dodgerblue") + 
+    geom_point(data = data.duration, aes(y = mean_duration_adjusted_rds, x = study_year, size = studysize_duration), col = "black") + 
+    theme(legend.position = "none") + 
+    scale_size_continuous(range = c(0.5, 5)) +
+    scale_y_continuous(breaks =c(2.5, 5, 7.5, 10, 12.5 ,15, 17.5)) + 
+    geom_pointrange(data = r_dur_df.rds, 
+                    aes(y = Q50,  ymin = Q2.5, ymax = Q97.5, x = study_year), 
+                    position = position_jitter(width = 0.2, height = 0), 
+                    col = "gray40",
+                    alpha = 0.6)) 
+
+cowplot::plot_grid(plot.age, plot.age.rds) 
+cowplot::plot_grid(plot.dur, plot.dur.rds) 
+
+
+
+### Thembisas estimates of FSW mortality: 
+#########################################
+
+
+mort.fsw = read_excel("../../Thembisa_data/FSW_AIDSmortality.xlsx", sheet = 4) %>% 
+  pivot_longer(cols = c(2:32), names_to = "Year", values_to = "mort") %>% 
+  rename("statistic" = "...1") %>% 
+  pivot_wider(names_from = statistic, values_from = mort) %>% 
+  rename("lb" = "95% LL", "ub" = "95% UL") %>% 
+  mutate(Year = as.numeric(Year))
+
+
+(plot.mortatliy_thembisa  = mort.fsw %>% 
+    filter(Year >= 1996, Year <= 2019) %>% 
+    ggplot(aes(x = Year, y = Average)) + 
+    geom_line(col = "orange") + 
+    geom_ribbon(aes(ymin = lb, ymax = ub), alpha = 0.4, fill = "orange") + 
+    theme_bw() + 
+    labs(y = "AIDS-mortality rates (95% CrI) in FSW [per person-year]") + 
+    scale_y_continuous(limits= c(0, 0.02)))
+
+
+
+# save stuff for manuscript
+save(pred.tot.age, pred.tot.age_noslope, pred.rate.tot,pred.rate.tot.noslope,  b.tot.sum,pred.sens.tot,  age_quant.indiv, dur_quant.indiv, data.sens.small, pred.sens.tot.pred, 
+     file = "../../RData/posterior_predictions.rda")
+save(plot.dur, plot.rate.lamba, plot.age, plot.sd, gprandom, file = "../../RData/plots_main_analysis.rds" )
+save(plot.sens, plot.age.exclMilo, plot.dur.exclMilo, file = "../../RData/plots_sensitivity_analysis.rda")
+save(plot_slopes, plot_intercepts, file = "../../RData/plots_slopesintercepts.rda")
+save(plot.age.indiv, plot.dur.indiv, file = "../../RData/plots_individual_level.rda")
+save(plot.age.constant, plot.duration.constant, file = "../../RData/plots_constant_FSWprofiles.rda")
+save(plot.mortatliy_thembisa, file = "../../RData/plot_thembisa_mortality.rda")
 

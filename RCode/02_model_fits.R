@@ -184,3 +184,41 @@ fit.age.exclMilo = stan(file = "../Stanmodels/age_model.stan",
 
 save(data.new.age.exclMilo, data.age.exclMilo, year_age.exclMilo, fit.age.exclMilo, 
      file = "../../RData/age_model_fit_exclMilo.rda")
+
+
+########################################################
+## Sensitivity analysis: Use RDS weighted proportions ##
+########################################################
+
+# duration model fit
+
+fit.duration.rds = stan(file = "../Stanmodels/duration_model.stan",
+                    iter = 4000, 
+                    data = list(N = nrow(data.duration),
+                                L = nrow(data.duration), 
+                                y = data.duration$mean_duration_adjusted_rds,
+                                ll = 1:nrow(data.duration), 
+                                x = data.duration$year_centered, 
+                                s = data.duration$studysize_duration, 
+                                N_new = nrow(data.new.duration), 
+                                x_new = data.new.duration[,2]))
+
+# age model 
+fit.age.rds = stan(file = "../Stanmodels/age_model.stan",
+               iter = 4000, 
+               data = list(N = nrow(data.age),
+                           L = nrow(data.age), 
+                           y = data.age$mean_age_adjusted_rds,
+                           ll = 1:nrow(data.age), 
+                           x = data.age$year_centered, 
+                           s = data.age$studysize_age, 
+                           c = 10, 
+                           N_sd = sum(!is.na(data.age$SD_age_adjusted)), 
+                           sd_y = data.age$SD_age_adjusted[!is.na(data.age$SD_age_adjusted)], 
+                           ind_sd = which(!is.na(data.age$SD_age_adjusted)), 
+                           N_new = nrow(data.new.age), 
+                           x_new = data.new.age[,2]))
+
+
+save(fit.duration.rds, fit.age.rds, 
+     file = "../../RData/model_fits_rds.rda")

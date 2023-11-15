@@ -63,7 +63,7 @@ year = c(min(year_age)-0.25, year_age, max(year_age) + 0.25)
 year_centred = year - mean(data.age$study_year)
 data.new.age = data.frame(intercept = rep(1, length(year)), year_centered = year_centred)
 
-age.long_re = sim.fit.age[, c(36,34,37)] %>% 
+age.long_re = sim.fit.age[, c("eta_mu","omega","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
   t(as.matrix(data.new.age)) %>% 
@@ -75,7 +75,7 @@ age.long_re = sim.fit.age[, c(36,34,37)] %>%
   bind_cols(study_year = rep(year, 8000)) %>% 
   rename(age_linpred_re = value)
 
-age.long = as.matrix(sim.fit.age[, c(36,34)]) %*% 
+age.long = as.matrix(sim.fit.age[, c("eta_mu","omega")]) %*% 
   t(as.matrix(data.new.age)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -140,7 +140,7 @@ data.new.dur = data.frame(intercept = rep(1, length(year)), year_centered = year
 sim.dur = as.matrix(fit.duration) %>% 
   as_tibble()
 
-mu.long = as.matrix(sim.dur[, c(1,3)]) %*% 
+mu.long = as.matrix(sim.dur[, c("theta_mu", "gamma")]) %*% 
   t(as.matrix(data.new.dur)) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -150,7 +150,7 @@ mu.long = as.matrix(sim.dur[, c(1,3)]) %*%
   rename(mu_linpred = value)
 
 
-mu.long.re = sim.dur[, c(1,2,3)] %>% 
+mu.long.re = sim.dur[, c("theta_mu","theta_tau","gamma")] %>% 
   rowwise() %>% 
   mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta, gamma) %>% as.matrix() %*% 
   t(as.matrix(data.new.dur)) %>% 
@@ -256,7 +256,7 @@ data.sim.different.r = data.sim.different.r %>%
 sim.fit.age.noslope = as.matrix(fit.age.noslope) %>% 
   as_tibble()
 
-age.long_re_noslope = sim.fit.age.noslope[, c(35,36)] %>% 
+age.long_re_noslope = sim.fit.age.noslope[, c("eta_mu","eta_tau")] %>% 
   rowwise() %>% 
   mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta) %>% as.matrix() %*% 
   t(as.matrix(data.new.age[,1])) %>% 
@@ -269,7 +269,7 @@ age.long_re_noslope = sim.fit.age.noslope[, c(35,36)] %>%
   rename(age_linpred_re = value)
 
 
-age.long_noslope = as.matrix(sim.fit.age.noslope[, c(35)]) %*% 
+age.long_noslope = as.matrix(sim.fit.age.noslope[, c("eta_mu")]) %*% 
   t(as.matrix(data.new.age[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>%
@@ -321,7 +321,7 @@ p0.long_noslope = age.long_noslope %>%
 sim.dur_noslope = as.matrix(fit.duration.noslope) %>% 
   as_tibble()
 
-mu.long_noslope = as.matrix(sim.dur_noslope[, c(1)]) %*% 
+mu.long_noslope = as.matrix(sim.dur_noslope[, c("theta_mu")]) %*% 
   t(as.matrix(data.new.dur[,1])) %>% 
   as_tibble() %>% 
   mutate_all(exp) %>% 
@@ -330,7 +330,7 @@ mu.long_noslope = as.matrix(sim.dur_noslope[, c(1)]) %*%
   bind_cols(study_year = rep(year, 8000)) %>% 
   rename(mu_linpred = value)
 
-mu.long.re_noslope = sim.dur_noslope[, c(1,2)] %>% 
+mu.long.re_noslope = sim.dur_noslope[, c("theta_mu","theta_tau")] %>% 
   rowwise() %>% 
   mutate(theta = rnorm(1, theta_mu , theta_tau)) %>% select(theta) %>% as.matrix() %*% 
   t(as.matrix(data.new.dur[,1])) %>% 
@@ -431,7 +431,7 @@ data.sim.different.r_noslope = data.sim.different.r_noslope %>%
     scale_x_continuous(breaks = c(1990, 1996, 2000, 2005, 2010, 2015,2019)) + 
     theme(legend.position = "bottom") + 
     # coord_cartesian(ylim = c(0.01,0.35))) 
-    coord_cartesian(ylim = c(0.01,0.45))) 
+    coord_cartesian(ylim = c(0.01,0.47))) 
 
 fakedata = data.frame(y = c(0.5, 0.5), ymin = c(0.55, 0.55), 
                        ymax = c(0.65, 0.65), x = c(2000, 2010), fact = "r = 1.25",
@@ -474,11 +474,17 @@ fakedata = data.frame(y = c(0.5, 0.5), ymin = c(0.55, 0.55),
           legend.margin=margin(0,0,0,0), 
           legend.box.margin=margin(-10,0,0,0), 
           axis.text.x = element_text(angle = 45, hjust = 1)) + 
-    coord_cartesian(ylim = c(0.01,0.45)) + theme(legend.position = "top")) 
+    coord_cartesian(ylim = c(0.01,0.47)) + theme(legend.position = "top")) 
 
 
 ### Final plot simulation exercise:
 
 cowplot::plot_grid(plot_sim_r1, plot_sim_r1.25_to_1.75, nrow = 2, 
                    rel_heights = c(0.6, 0.4), labels = LETTERS)
+
+
+## save for manuscript: 
+
+save(plot_sim_r1, plot_sim_r1.25_to_1.75, 
+     file = "../../RData/plots_simulation_exercise.rda")
 
