@@ -14,14 +14,28 @@ data = read.csv2("../Data/FSW_profiles_reported_summary_data.csv")
 
 ### change medians and other quantiles to means (based on distributional assumption)
 
+function_quantopt_dur = function(quantile, prob){
+  model <- function(x){
+    lambda = x
+    diff = prob - (1-exp(-lambda*quantile))
+    sum(diff^2)}
+  opt = optimize(model, c(0,5))
+  return(list(lambda = opt$minimum, value =opt$objective))
+  }
+
 
 data.duration.t1 = data %>% 
   filter(!is.na(Mean_duration) | !is.na(duration_Quantile_1)) %>% 
   select(-contains("age")) %>%
   select(- Province, -Location, - exclusion_num) %>% 
   select(- duration_Quantile_2, -duration_Probability_2) %>% 
+  select(- duration_Quantile_3, -duration_Probability_3) %>% 
+  select(-duration_Quantile_4, -duration_Probability_4) %>% 
   rename(quantile_duration = duration_Quantile_1, probability_duration = duration_Probability_1) %>% 
-  select(-duration_Probability_rds_1)
+  select(-duration_Probability_rds_1) %>% 
+  select(-duration_Probability_rds_2) %>% 
+  select(-duration_Probability_rds_3) %>% 
+  select(-duration_Probability_rds_4) 
 
 
 data.duration.t2 = data %>% 
@@ -29,36 +43,115 @@ data.duration.t2 = data %>%
   select(-contains("age")) %>%
   select(- Province, -Location, - exclusion_num) %>% 
   select(- duration_Quantile_1, -duration_Probability_1) %>% 
+  select(- duration_Quantile_3, -duration_Probability_3) %>% 
+  select(-duration_Quantile_4, -duration_Probability_4) %>% 
   rename(quantile_duration = duration_Quantile_2, probability_duration = duration_Probability_2) %>% 
   filter(!is.na(quantile_duration))%>% 
-  select(-duration_Probability_rds_1)
+  select(-duration_Probability_rds_1) %>% 
+  select(-duration_Probability_rds_2) %>% 
+  select(-duration_Probability_rds_3) %>% 
+  select(-duration_Probability_rds_4) 
 
 
-data.duration = data.duration.t1 %>% 
+data.duration.t3 = data %>% 
+  filter(!is.na(Mean_duration) | !is.na(duration_Quantile_1)) %>% 
+  select(-contains("age")) %>%
+  select(- Province, -Location, - exclusion_num) %>% 
+  select(- duration_Quantile_1, -duration_Probability_1) %>% 
+  select(- duration_Quantile_2, -duration_Probability_2) %>% 
+  select(-duration_Quantile_4, -duration_Probability_4) %>% 
+  rename(quantile_duration = duration_Quantile_3, probability_duration = duration_Probability_3) %>% 
+  filter(!is.na(quantile_duration))%>% 
+  select(-duration_Probability_rds_1) %>% 
+  select(-duration_Probability_rds_2) %>% 
+  select(-duration_Probability_rds_3) %>% 
+  select(-duration_Probability_rds_4) 
+
+
+data.duration.t4 = data %>% 
+  filter(!is.na(Mean_duration) | !is.na(duration_Quantile_1)) %>% 
+  select(-contains("age")) %>%
+  select(- Province, -Location, - exclusion_num) %>% 
+  select(- duration_Quantile_1, -duration_Probability_1) %>% 
+  select(- duration_Quantile_2, -duration_Probability_2) %>% 
+  select(-duration_Quantile_3, -duration_Probability_3) %>%
+  rename(quantile_duration = duration_Quantile_4, probability_duration = duration_Probability_4) %>% 
+  filter(!is.na(quantile_duration))%>% 
+  select(-duration_Probability_rds_1) %>% 
+  select(-duration_Probability_rds_2) %>% 
+  select(-duration_Probability_rds_3) %>% 
+  select(-duration_Probability_rds_4) 
+
+data.duration.v1 = data.duration.t1 %>% 
   bind_rows(data.duration.t2) %>% 
-  arrange(Population_ID) %>% 
-  rowwise() %>% 
-  mutate(lambda_dur = case_when(!is.na(Mean_duration) ~ 1/Mean_duration, 
-                                !is.na(quantile_duration)  ~ log(1/(1-probability_duration))/quantile_duration, 
-                                TRUE ~ NA_real_)) %>% 
-  mutate(reported_summarystatistic = case_when(!is.na(Mean_duration) ~ "mean", 
-                                  !is.na(quantile_duration) & probability_duration ==0.5 ~ "median", 
-                                  !is.na(quantile_duration) & probability_duration !=0.5 ~ "quantile", 
-                                  TRUE ~ NA_character_ )) %>% 
+  bind_rows(data.duration.t3) %>% 
+  bind_rows(data.duration.t4) %>% 
   group_by(Population_ID) %>% 
-  mutate(lambda_dur = mean(lambda_dur, na.rm = TRUE)) %>% 
+  mutate(total_obs = n()) %>% 
+  rowwise() %>% 
+  mutate(lambda_dur = case_when(total_obs >1 ~ NA_real_, 
+                                 !is.na(Mean_duration)~ 1/Mean_duration, 
+                                 TRUE ~ log(1/(1-probability_duration))/quantile_duration)) %>% 
+  mutate(reported_summarystatistic = case_when(total_obs>1 ~ "quantile", 
+                                               !is.na(Mean_duration) ~ "mean", 
+                                               probability_duration ==0.5 ~ "median", 
+                                               probability_duration !=0.5 ~ "quantile")) 
+
+
+data.duration.optim = data.duration.v1 %>% 
+  filter(is.na(lambda_dur)) %>% 
+  group_by(Population_ID) %>% 
+  summarise(lambda_opt = function_quantopt_dur(quantile = quantile_duration, prob=probability_duration)$lambda)
+  
+
+data.duration = data.duration.v1 %>% 
+  select(Study, Population_ID, study_year, studyyear_calculated, studysize_duration, reported_summarystatistic, lambda_dur) %>% 
+  distinct() %>% 
+  left_join(data.duration.optim) %>% 
+  ungroup() %>% 
+  mutate(lambda_dur = ifelse(is.na(lambda_dur), lambda_opt, lambda_dur)) %>% 
   mutate(mean_duration_adjusted = 1/lambda_dur) %>% 
-  select(-quantile_duration, -probability_duration, - lambda_dur, - Mean_duration) %>% 
+  select(-lambda_opt, -lambda_dur) %>% 
   distinct() %>% 
   ungroup() %>% 
   mutate(year_centered = study_year - mean(study_year)) 
 
-data.duration.rds = data %>% filter(!is.na(duration_Probability_rds_1)) %>% 
-  select(Population_ID, quantile_duration = duration_Quantile_1, probability_duration = duration_Probability_rds_1) %>% 
+
+
+data.duration.rds1 = data %>% filter(!is.na(duration_Probability_rds_1)) %>% 
+  select(Population_ID, quantile_duration = duration_Quantile_1, probability_duration = duration_Probability_rds_1) 
+
+data.duration.rds2 = data %>% filter(!is.na(duration_Probability_rds_2)) %>% 
+  select(Population_ID, quantile_duration = duration_Quantile_2, probability_duration = duration_Probability_rds_2) 
+
+data.duration.rds3 = data %>% filter(!is.na(duration_Probability_rds_3)) %>% 
+  select(Population_ID, quantile_duration = duration_Quantile_3, probability_duration = duration_Probability_rds_3) 
+
+data.duration.rds4 = data %>% filter(!is.na(duration_Probability_rds_4)) %>% 
+  select(Population_ID, quantile_duration = duration_Quantile_4, probability_duration = duration_Probability_rds_4) 
+
+data.duration.rds.v1 = data.duration.rds1 %>% 
+  bind_rows(data.duration.rds2) %>% 
+  bind_rows(data.duration.rds3) %>% 
+  bind_rows(data.duration.rds4) %>% 
+  group_by(Population_ID) %>% 
+  mutate(total_obs = n()) %>% 
   rowwise() %>% 
-  mutate(mean_duration_adjusted_rds = 1/(log(1/(1-probability_duration))/quantile_duration)) %>% 
+  mutate(lambda_dur = case_when(total_obs >1 ~ NA_real_, 
+                                TRUE ~ log(1/(1-probability_duration))/quantile_duration))
+data.duration.rds.optim = data.duration.rds.v1 %>% 
+  filter(is.na(lambda_dur)) %>% 
+  group_by(Population_ID) %>% 
+  summarise(lambda_opt = function_quantopt_dur(quantile = quantile_duration, prob=probability_duration)$lambda)
+
+data.duration.rds = data.duration.rds.v1 %>% 
+  select(Population_ID, lambda_dur) %>% 
+  distinct() %>% 
+  left_join(data.duration.rds.optim) %>% 
+  mutate(lambda_dur = ifelse(is.na(lambda_dur), lambda_opt, lambda_dur)) %>% 
+  mutate(mean_duration_adjusted_rds = 1/lambda_dur) %>% 
   select(Population_ID, mean_duration_adjusted_rds)
-  
+
 data.duration = data.duration %>% left_join(data.duration.rds)
 
 
