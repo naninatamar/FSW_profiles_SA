@@ -370,6 +370,123 @@ data.age = data.age %>% mutate(rds_weights_avail = as.numeric(!is.na(mean_age_ad
                                  case_when(is.na(mean_age_adjusted_rds) ~ mean_age_adjusted, 
                                            TRUE ~ mean_age_adjusted_rds))
 
+
+### choosing offset = 15 for the sensitivity analysis: 
+
+c_offset15 = 15 # assumed offset of gamma distribution
+
+data.age15 = data %>% 
+  filter(!is.na(Mean_age) | !is.na(age_Quantile_1)) %>%   
+  select(-contains("duration")) %>%
+  select(- Province, -Location) %>% 
+  mutate(exclusion_num_imp = ifelse(is.na(exclusion_num), c_offset15, exclusion_num))
+
+## Approach 1: Transformation to mean and truncation-correction based on reported mean and standard devation:  
+
+data.age15 = data.age15 %>% 
+  rowwise() %>% 
+  mutate(root1 = ifelse(is.na(SD_age) | is.na(Mean_age), NA_real_, 
+                        function_optim(mean_age = Mean_age-c_offset15, var_age = SD_age^2, trunc_age = exclusion_num_imp-c_offset15)$root1)) %>% 
+  mutate(root2 = ifelse(is.na(SD_age)  | is.na(Mean_age), NA_real_, 
+                        function_optim(mean_age = Mean_age-c_offset15, var_age = SD_age^2, trunc_age = exclusion_num_imp-c_offset15)$root2)) %>% 
+  mutate(mean_age_adjusted_ap1 = root1/root2+c_offset15, 
+         SD_age_adjusted_ap1 = sqrt(root1/root2^2))
+
+## Approach 2: Transformation to mean and truncation-correction based on reported quantiles:  
+
+# select studies that did report quantiles 
+
+data.age.quant.t115 = data.age15 %>% 
+  filter(!is.na(age_Quantile_1)) %>% 
+  select(Population_ID, exclusion_num_imp, contains("Quantile")) %>% 
+  pivot_longer(cols = c(age_Quantile_1, age_Quantile_2, age_Quantile_3, age_Quantile_4), 
+               names_to = "whichquant", values_to = "quantile_age") %>% 
+  filter(!is.na(quantile_age)) %>% 
+  mutate(whichquant = gsub("age_Quantile_", "", whichquant))
+
+
+data.age.quant.t215 = data.age15 %>% 
+  filter(!is.na(age_Quantile_1)) %>% 
+  select(Population_ID, exclusion_num_imp, contains("Probability")) %>%
+  select(-contains("rds")) %>% 
+  pivot_longer(cols = c(age_Probability_1, age_Probability_2, age_Probability_3, age_Probability_4), 
+               names_to = "whichquant", values_to = "probability_age") %>% 
+  filter(!is.na(probability_age)) %>% 
+  mutate(whichquant = gsub("age_Probability_", "", whichquant))         
+
+
+data.age.quant15 = data.age.quant.t115 %>% left_join(data.age.quant.t215)
+
+data.quant.shape15 = data.age.quant15 %>% group_by(Population_ID ) %>% 
+  summarise(root1_quant = function_quantopt(quantile = quantile_age-c_offset15, prob = probability_age, trunc_age = exclusion_num_imp-c_offset15)$shape)
+
+data.quant.rate15 =  data.age.quant15 %>% group_by(Population_ID ) %>% 
+  summarise(root2_quant = function_quantopt(quantile = quantile_age-c_offset15, prob = probability_age, trunc_age = exclusion_num_imp-c_offset15)$rate)
+
+data.quant.conv15 =  data.age.quant15 %>% group_by(Population_ID) %>% 
+  summarise(converged_quant = function_quantopt(quantile = quantile_age-c_offset15, prob = probability_age, trunc_age = exclusion_num_imp-c_offset15)$converged)
+
+# table(data.quant.conv$converged_quant)
+
+data.quant.value15 =  data.age.quant15 %>% group_by(Population_ID) %>% 
+  summarise(value_quant = function_quantopt(quantile = quantile_age-c_offset15, prob = probability_age, trunc_age = exclusion_num_imp-c_offset15)$value)
+
+data.age.quant15 = data.age.quant15 %>% 
+  select(Population_ID) %>% 
+  group_by(Population_ID) %>% 
+  summarise(tot_quantavail = n()) %>% 
+  left_join(data.quant.shape) %>% 
+  left_join(data.quant.rate) %>% 
+  mutate(mean_age_adjusted_ap2 = root1_quant/root2_quant + c_offset15, 
+         SD_age_adjusted_ap2 = sqrt(root1_quant/root2_quant^2)) %>% 
+  mutate(mean_age_adjusted_ap2 = ifelse(tot_quantavail ==1, NA_real_, mean_age_adjusted_ap2), ## does not work if only 1 quantile available
+         SD_age_adjusted_ap2 = ifelse(tot_quantavail ==1, NA_real_, SD_age_adjusted_ap2)) %>% 
+  select(-tot_quantavail) %>% 
+  filter(!is.na(mean_age_adjusted_ap2))
+
+## Approach 3: Transformation to mean and truncation-correction based on reported mean and maximum:
+
+data.age.max15 = data.age15 %>% 
+  filter(!is.na(Max_age) & !is.na(Mean_age)) %>% 
+  select(Population_ID, Mean_age, Max_age, studysize_age, exclusion_num_imp) 
+
+data.age.max15 = data.age.max15 %>% 
+  rowwise() %>% 
+  mutate(root1_max = function_optim_max_2(mean_age = Mean_age-c_offset15, max_age = Max_age-c_offset15, trunc_age = exclusion_num_imp-c_offset15, n_study = studysize_age)$root1) %>% 
+  mutate(root2_max = function_optim_max_2(mean_age = Mean_age-c_offset15, max_age = Max_age-c_offset15, trunc_age = exclusion_num_imp-c_offset15, n_study = studysize_age)$root2) %>% 
+  mutate(mean_age_adjusted_ap3 = root1_max/root2_max+c_offset15, 
+         SD_age_adjusted_ap3 = sqrt(root1_max/root2_max^2)) %>% 
+  select(-Mean_age, - Max_age, -exclusion_num_imp)
+
+# bring all together
+data.age15 = data.age15 %>% 
+  select(Study, Population_ID, exclusion_num_imp, study_year, studysize_age,Mean_age,  SD_age, root1, root2, mean_age_adjusted_ap1, SD_age_adjusted_ap1) %>% 
+  left_join(data.age.quant) %>% 
+  left_join(data.age.max) %>% 
+  mutate(mean_age_adjusted = case_when(exclusion_num_imp == 15 & !is.na(Mean_age) ~ Mean_age, ## take reported mean age if no truncation (no exclusion criteria)
+                                       !is.na(Mean_age) & !is.na(SD_age) ~ mean_age_adjusted_ap1, ## take app1 if mean and SD are reported and truncation is apparent
+                                       !is.na(mean_age_adjusted_ap2)  ~ mean_age_adjusted_ap2,  ## take app1 if no SD (or no mean) is reported but >=2 quantiles are
+                                       TRUE ~ mean_age_adjusted_ap3)) %>%  ## take app3 if only mean but no SD and not quantiles are reported
+  mutate(SD_age_adjusted =  case_when(exclusion_num_imp == 15 & !is.na(Mean_age) ~ SD_age, ## take reported mean age if no truncation (no exclusion criteria)
+                                      !is.na(Mean_age) & !is.na(SD_age) ~ SD_age_adjusted_ap1, ## take app1 if mean and SD are reported and truncation is apparent
+                                      !is.na(SD_age_adjusted_ap2)  ~ SD_age_adjusted_ap2, ## take app1 if no SD (or no mean) is reported but >=2 quantiles are
+                                      TRUE ~ SD_age_adjusted_ap3)) %>% ## take app3 if only mean but no SD and not quantiles are reported
+  mutate(SD_age_adjusted = case_when(is.na(SD_age) ~ NA_real_, 
+                                     TRUE ~ SD_age_adjusted)) %>% 
+  mutate(adjustment_method = case_when(exclusion_num_imp == 15 & !is.na(Mean_age) ~ "No adjustment (reported mean)", ## take reported mean age if no truncation (no exclusion criteria)
+                                       !is.na(Mean_age) & !is.na(SD_age) ~ "Approach 1",  ## take app1 if mean and SD are reported and truncation is apparent
+                                       !is.na(mean_age_adjusted_ap2)  ~ "Approach 2",  ## take app1 if no SD (or no mean) is reported but >=2 quantiles are
+                                       TRUE ~ "Approach 3")) %>%  ## take app3 if only mean but no SD and not quantiles are reported
+  select(-contains("root"), -contains("_ap"), - Mean_age, - SD_age) %>% 
+  ungroup() %>% 
+  left_join(data.age.quant_rds) %>% 
+  mutate(year_centered = study_year - mean(study_year))   
+
+
+data.age15 = data.age15 %>% select(Population_ID, studysize_age, mean_age_adjusted_15 = mean_age_adjusted, SD_age_adjusted_15 = SD_age_adjusted)
+
+data.age  = data.age %>% left_join(data.age15)
+
 save(data, data.age, data.duration, file = "../../RData/data_analysis.rda")
 # # temporary:
 # 

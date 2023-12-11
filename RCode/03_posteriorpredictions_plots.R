@@ -18,6 +18,7 @@ load("../../RData/age_model_fit_exclMilo.rda")
 load("../../RData/duration_model_fit_exclMilo.rda")
 load("../../RData/model_fits_noslope.rda")
 load("../../RData/model_fits_rds.rda")
+load("../../RData/model_fit_offset15.rda")
 
 ######################
 ### FSW age:  ########
@@ -1565,6 +1566,186 @@ r_dur_df.rds$study_year = data.duration$study_year
 cowplot::plot_grid(plot.age, plot.age.rds) 
 cowplot::plot_grid(plot.dur, plot.dur.rds) 
 
+### combine the plots in one: 
+(plot.comb.age.rds =  pred.tot.age %>% 
+    ggplot(aes(x=year, y = Q05)) +
+    geom_line(aes(col = "crude"), size = 0.8)+
+    geom_ribbon(aes(fill = "crude", ymin = Q0025, ymax = Q0975),
+                alpha = 0.3) +
+    theme_bw() +
+    labs(y = "Mean age (95% CrI) of female sex workers [years]", x = "Study year") +
+    geom_point(data = data.age, 
+               aes(col = "crude", y = mean_age_adjusted, x = study_year, size = studysize_age)) +
+    geom_ribbon(data = pred.tot.age, 
+                aes(ymin = Q0025_re, ymax = Q0975_re, fill = "crude"), 
+                alpha = 0.2) + 
+    geom_line(data=pred.tot.age.rds,aes(col = "rds (if available)"), size = 0.8, lty = 2)+
+    geom_ribbon(data = pred.tot.age.rds, aes(ymin = Q0025, ymax = Q0975, fill = "rds (if available)"),
+                alpha = 0.3) +
+    geom_point(data = data.age, 
+               aes(y = mean_age_adjusted_rds, x = study_year, size = studysize_age, col = "rds (if available)")) +
+    geom_ribbon(data = pred.tot.age.rds, 
+                aes(ymin = Q0025_re, ymax = Q0975_re, fill =  "rds (if available)"), 
+                alpha = 0.2) + 
+    scale_size_continuous(range= c(0.1,5)) + 
+  scale_color_manual(values = c("tomato", "gray40"), name = "Weights") + 
+  scale_fill_manual(values = c("tomato", "gray40"), name = "Weights") + 
+  guides(size = FALSE) + 
+  theme(legend.position = c(0.19, 0.9)))
+
+
+
+(plot.comb.dur.rds  = pred.rate.tot %>% 
+    ggplot(aes(x=year, y = rate_Q05)) + 
+    geom_line(aes(col = "crude"), size = 0.8)+ 
+    geom_ribbon(aes(ymin = rate_Q0025, ymax = rate_Q0975, fill = "crude"), alpha = 0.3) + 
+    theme_bw() + 
+    labs(y = "Mean duration (95%-CrI) of sex work [years]", x = "Study year") + 
+    scale_x_continuous(breaks = c(1996, 2000, 2005, 2010, 2015, 2019)) +
+    geom_ribbon(aes(ymin = rate_Q0025_re, ymax = rate_Q0975_re, fill ="crude"), alpha = 0.2) + 
+    geom_point(data = data.duration, aes(y = mean_duration_adjusted, x = study_year, size = studysize_duration, col = "crude")) + 
+    theme(legend.position = "none") + 
+    scale_size_continuous(range = c(0.5, 5)) +
+    scale_y_continuous(breaks =c(2.5, 5, 7.5, 10, 12.5 ,15, 17.5)) +
+    geom_line(data = pred.rate.tot.rds, aes(col = "rds (if available)"), size = 0.8, lty = 2)+ 
+    geom_ribbon(data= pred.rate.tot.rds, aes(ymin = rate_Q0025, ymax = rate_Q0975, fill = "rds (if available)"), alpha = 0.3) + 
+    geom_ribbon(data = pred.rate.tot.rds, aes(ymin = rate_Q0025_re, ymax = rate_Q0975_re, fill ="rds (if available)"), alpha = 0.2) + 
+    geom_point(data = data.duration, aes(y = mean_duration_adjusted_rds, x = study_year, size = studysize_duration, col = "rds (if available)")) + 
+                 scale_color_manual(values = c("dodgerblue", "gray40"), name = "Weights") + 
+                 scale_fill_manual(values = c("dodgerblue", "gray40"), name = "Weights") + 
+                 guides(size = FALSE) + 
+                 theme(legend.position = c(0.19, 0.9)))
+
+
+cowplot::plot_grid(plot.comb.age.rds, plot.comb.dur.rds, labels = LETTERS)
+
+
+
+##### 
+### Sensitivity analysis: Use 15 year offset instead of 10 year
+################################################################
+
+sim.fit.age.15 = as.matrix(fit.age15) %>% 
+  as_tibble()
+
+cutoff = 15
+## posterior predictions of the expected FSW age - population mean (excluding random effect variability)
+pred.age.15 = as.matrix(sim.fit.age.15[, c("eta_mu","omega")]) %*% 
+  t(as.matrix(data.new.age)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age)
+
+## posterior predictions of the expected FSW age (including random effect variability)
+pred.re.age.15 = sim.fit.age.15[, c("eta_mu","omega","eta_tau")] %>% 
+  rowwise() %>% 
+  mutate(eta = rnorm(1, eta_mu , eta_tau)) %>% select(eta, omega) %>% as.matrix() %*% 
+  t(as.matrix(data.new.age)) %>% 
+  as_tibble() %>% 
+  mutate_all(exp) %>%
+  mutate_all(., function(x){x+cutoff}) %>% 
+  summarise_all(list(Q0025 = ~ quantile(., probs = 0.025), Q05 = median, Q0975 = ~quantile(., probs = 0.975))) %>% 
+  pivot_longer(cols = everything()) %>%
+  mutate(quantile = gsub(".*\\_", "", name)) %>% 
+  mutate(name = gsub("\\_.*", "", name)) %>% 
+  pivot_wider(names_from = quantile, values_from = value) %>% 
+  bind_cols(year = year_age) %>% 
+  select(year,Q0025_re = Q0025, Q05_re = Q05, Q0975_re = Q0975)
+
+
+pred.tot.age.15 = pred.age.15 %>% 
+  left_join(pred.re.age.15) 
+
+# posterior predictions of expected FSW age for each individual study: 
+
+random_beta.15 = sim.fit.age.15 %>% select(starts_with("beta["))
+common_alpha.15 = sim.fit.age.15 %>% select(alpha)
+
+studylevel_age.15 = apply(random_beta.15, MARGIN = 2, function(x){pull(common_alpha.15)/x + cutoff})
+
+studylevel_age_mean.15 = apply(X =studylevel_age.15, 
+                               MARGIN = 2,
+                               FUN = mean)
+
+studylevel_age_sd.15 = apply(X = studylevel_age.15, 
+                             MARGIN = 2, 
+                             FUN = sd)
+
+studylevel_age_quant.15  = apply(X = studylevel_age.15, 
+                                 MARGIN = 2, 
+                                 FUN = quantile, 
+                                 probs = c(0.025, 0.5, 0.975))
+
+studylevel_age_quant.15 = data.frame(t(studylevel_age_quant.15))
+names(studylevel_age_quant.15) = c("Q2.5", "Q50", "Q97.5")
+
+age_df.15 = data.frame(studylevel_age_mean.15, studylevel_age_sd.15, studylevel_age_quant.15)
+age_df.15$year = data.age$study_year
+
+age_df.15$studysize_age = data.age$studysize_age
+
+(plot.age.15 = pred.tot.age.15 %>% 
+    ggplot(aes(x=year, y = Q05)) +
+    geom_line(col = "tomato", size = 0.8)+
+    geom_ribbon(aes(ymin = Q0025, ymax = Q0975),
+                alpha = 0.3, fill = "tomato") +
+    theme_bw() +
+    labs(y = "Mean age (95% CrI) of female sex workers [years]", x = "Study year") +
+    geom_point(data = data.age, 
+               aes(y = mean_age_adjusted_15, x = study_year, size = studysize_age),
+               col = "black") +
+    geom_ribbon(data = pred.tot.age.15, 
+                aes(ymin = Q0025_re, ymax = Q0975_re), 
+                alpha = 0.2, fill = "tomato") +
+    theme(legend.position = "none")  +   
+    scale_y_continuous(breaks = c(24,26,28,30, 32, 34, 36, 38)) + 
+    scale_x_continuous(breaks = c(1996, 2000,2005, 2010, 2015, 2019)) + 
+    geom_pointrange(data = age_df.15, 
+                    aes(y = Q50,  ymin = Q2.5, ymax = Q97.5, x = year), 
+                    position = position_jitter(width = 0.2, height = 0), 
+                    col = "gray40", alpha = 0.6) + 
+    scale_size_continuous(range= c(0.1,5))
+)  #
+
+
+cowplot::plot_grid(plot.age, plot.age.15, labels = LETTERS)
+
+## combine the two in one plot:
+
+(plot.comb =  pred.tot.age %>% 
+    ggplot(aes(x=year, y = Q05)) +
+    geom_line(aes(col = "10"), size = 0.8)+
+    geom_ribbon(aes(fill = "10", ymin = Q0025, ymax = Q0975),
+                alpha = 0.3) +
+    theme_bw() +
+    labs(y = "Mean age (95% CrI) of female sex workers [years]", x = "Study year") +
+    geom_point(data = data.age, 
+               aes(col = "10", y = mean_age_adjusted, x = study_year, size = studysize_age)) +
+    geom_ribbon(data = pred.tot.age, 
+                aes(ymin = Q0025_re, ymax = Q0975_re, fill = "10"), 
+                alpha = 0.2) + 
+    geom_line(data=pred.tot.age.15,aes(col = "15"), size = 0.8, lty = 2)+
+    geom_ribbon(data = pred.tot.age.15, aes(ymin = Q0025, ymax = Q0975, fill = "15"),
+                alpha = 0.3) +
+    geom_point(data = data.age, 
+               aes(y = mean_age_adjusted_15, x = study_year, size = studysize_age, col = "15")) +
+    geom_ribbon(data = pred.tot.age.15, 
+                aes(ymin = Q0025_re, ymax = Q0975_re, fill =  "15"), 
+                alpha = 0.2) + 
+    scale_size_continuous(range= c(0.1,5)) + 
+  scale_color_manual(values = c("tomato", "gray40"), name = "offset [years]") + 
+  scale_fill_manual(values = c("tomato", "gray40"), name = "offset [years]") + 
+  guides(size = FALSE) + 
+  theme(legend.position = c(0.1, 0.9)))
+
+
+
 
 
 ### Thembisas estimates of FSW mortality: 
@@ -1592,6 +1773,7 @@ mort.fsw = read_excel("../../Thembisa_data/FSW_AIDSmortality.xlsx", sheet = 4) %
 
 # save stuff for manuscript
 save(pred.tot.age, pred.tot.age_noslope, pred.rate.tot,pred.rate.tot.noslope,  b.tot.sum,pred.sens.tot,  age_quant.indiv, dur_quant.indiv, data.sens.small, pred.sens.tot.pred, 
+     pred.tot.age.15, 
      file = "../../RData/posterior_predictions.rda")
 save(plot.dur, plot.rate.lamba, plot.age, plot.sd, gprandom, file = "../../RData/plots_main_analysis.rds" )
 save(plot.sens, plot.age.exclMilo, plot.dur.exclMilo, file = "../../RData/plots_sensitivity_analysis.rda")
@@ -1599,4 +1781,5 @@ save(plot_slopes, plot_intercepts, file = "../../RData/plots_slopesintercepts.rd
 save(plot.age.indiv, plot.dur.indiv, file = "../../RData/plots_individual_level.rda")
 save(plot.age.constant, plot.duration.constant, file = "../../RData/plots_constant_FSWprofiles.rda")
 save(plot.mortatliy_thembisa, file = "../../RData/plot_thembisa_mortality.rda")
-
+save(plot.comb.dur.rds, plot.comb.age.rds, plot.dur.rds, plot.age.rds, file = "../../RData/plots_rdsweights.rda")
+save(plot.comb, plot.age.15, file = "../../RData/plot_offest15.rda")

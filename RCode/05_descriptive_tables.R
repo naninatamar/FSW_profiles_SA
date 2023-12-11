@@ -12,6 +12,7 @@ source("01_data_adjustment.R") #
 data.tab = data %>% 
   mutate(Location = case_when(is.na(Location)~ "unspecified", 
                               TRUE ~ Location), 
+         Setting = SW_setting, 
          Nincluded = case_when(is.na(studysize_duration) | studysize_age == studysize_duration ~ as.character(studysize_age), 
                               studysize_age != studysize_duration ~ paste0(studysize_duration, " / ", studysize_age)), 
          meandur = ifelse(is.na(Mean_duration), "-", sprintf("%.2f", Mean_duration)), 
@@ -55,9 +56,9 @@ dupl = duplicated(tab1$Study)
 tab1$Study[dupl] = ""
 
 tab1 = tab1 %>% 
-  select(Study, Population_ID, Province, Location, study_year, Nincluded, meandur, quantdur, mean_sdage, quantage, maxage, exclusion_age)
+  select(Study, Population_ID, Province, Location, Setting,  study_year, Nincluded, meandur, quantdur, mean_sdage, quantage, maxage, exclusion_age)
 
-names(tab1) = c("Study", "Population ID", "Province", "Location", "Year", "Study size", 
+names(tab1) = c("Study", "Population ID", "Province", "Location", "Setting" , "Year", "Study size", 
                     "Mean SW duration", "Quantile (cumulative probability) SW duration", 
                     "Mean (SD) FSW age", "Quantile (cumlative probability) FSW age", 
                     "Max FSW age", "Exclusion")

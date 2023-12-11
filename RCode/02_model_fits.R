@@ -222,3 +222,27 @@ fit.age.rds = stan(file = "../Stanmodels/age_model.stan",
 
 save(fit.duration.rds, fit.age.rds, 
      file = "../../RData/model_fits_rds.rda")
+
+
+########################################################################
+## Sensitivity analysis: Use 15 year offset instead of 10 year offset ##
+########################################################################
+
+fit.age15 = stan(file = "../Stanmodels/age_model.stan",
+                 iter = 4000, 
+                 data = list(N = nrow(data.age),
+                             L = nrow(data.age), 
+                             y = data.age$mean_age_adjusted_15,
+                             ll = 1:nrow(data.age), 
+                             x = data.age$year_centered, 
+                             s = data.age$studysize_age, 
+                             c = 15, 
+                             N_sd = sum(!is.na(data.age$SD_age_adjusted_15)), 
+                             sd_y = data.age$SD_age_adjusted_15[!is.na(data.age$SD_age_adjusted_15)], 
+                             ind_sd = which(!is.na(data.age$SD_age_adjusted_15)), 
+                             N_new = nrow(data.new.age), 
+                             x_new = data.new.age[,2]))
+
+save(fit.age15, file = "../../RData/model_fit_offset15.rda")
+
+
