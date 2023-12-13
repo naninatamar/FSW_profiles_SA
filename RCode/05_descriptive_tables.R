@@ -51,7 +51,9 @@ impyear = data.tab %>% select(Study, studyyear_calculated)
 
 ### 
 
-tab1 = data.tab
+tab1 = data.tab %>% group_by(Study) %>% mutate(Setting = ifelse(is.na(Setting), Setting[row_number()==1], Setting)) %>% 
+  ungroup()
+
 dupl = duplicated(tab1$Study)
 tab1$Study[dupl] = ""
 
@@ -60,7 +62,7 @@ tab1 = tab1 %>%
 
 names(tab1) = c("Study", "Population ID", "Province", "Location", "Setting" , "Year", "Study size", 
                     "Mean SW duration", "Quantile (cumulative probability) SW duration", 
-                    "Mean (SD) FSW age", "Quantile (cumlative probability) FSW age", 
+                    "Mean (SD) FSW age", "Quantile (cumulative probability) FSW age", 
                     "Max FSW age", "Exclusion")
 ###
 
@@ -98,7 +100,7 @@ tab.total.print = tab.total %>%
          bias_sd = ifelse(is.na(bias_sd), "-", bias_sd))
 
 
-names(tab.total.print) = c("Study","Population ID", "Year", "Study size (SW duration)", "Adjusted mean SW duration", "Study size (FSW age)", "Adjusted mean FSW age", "Adjusted Standard devation FSW age", 
+names(tab.total.print) = c("Study","Population ID", "Year", "Study size (SW duration)", "Adjusted mean SW duration", "Study size (FSW age)", "Adjusted mean FSW age", "Adjusted Standard deviation FSW age", 
                            "Truncation bias mean age", "Truncation bias standard deviation age")
 
 save(tab1, data.tab, years_data, impyear, tab.total, tab.total.print, file = "../../RData/decriptive_tables.rda")
